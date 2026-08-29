@@ -1,6 +1,6 @@
 {
   "How do I get access to the EHR system?": {
-    "answer": "To get EHR access, submit an access request to **it@mentella.example** with your full name and regional pod [2]. Include a screenshot of any error message if you encounter one — it helps speed up processing [2].\n\nHere's the key step: your supervisor must countersign your request before your account becomes active [3]. This is a HIPAA requirement ensuring that a named, accountable person authorizes your access to client information [3].\n\nYour supervisor will receive an automatic notification when you submit the form. If you don't see a countersignature within 2 business days, reach out to your supervisor directly or escalate to it@mentella.example [3].\n\nOnce you have access, review the HIPAA Do's and Don'ts doc to understand what you're allowed to do [2].",
+    "answer": "To get EHR access, you'll need to submit a request [1]. Your supervisor must countersign your access request—this is a HIPAA requirement that ensures a named, accountable person authorizes your access to client information [3].\n\nHere's what to do: submit your access request and your supervisor will receive an automatic notification. If your supervisor hasn't countersigned within 2 business days, reach out to them directly or contact it@mentella.example to escalate [3].\n\nIf you run into technical issues or have questions during the process, email it@mentella.example with your full name, regional pod, and any error message screenshots [2]. They'll help you get set up.",
     "sources": [
       {
         "docTitle": "EHR Access and Accounts",
@@ -20,7 +20,7 @@
     ]
   },
   "When is my first paycheck, and how do I set up direct deposit?": {
-    "answer": "I'm not sure about your first paycheck timing — that's not covered in these excerpts. For that question, please reach out to ops@mentella.example.\n\nFor direct deposit, here's what I can tell you: Set it up in your Paylocity profile during your first week [1][2]. You can add up to 3 accounts and split pay by percentage or fixed amount [1]. Keep in mind that changes take one full pay cycle to take effect, so set it up early [1]. Direct deposit is one of three day-1 checklist items alongside tax forms and your emergency contact [1][2].",
+    "answer": "Your first paycheck arrives on the first scheduled payday after your start date [2]. Mentella pays semi-monthly on the 15th and the last business day of each month [2].\n\nTo receive it, set up direct deposit in your Paylocity profile during your first week—it's a day-1 priority [1][3]. You can add up to 3 accounts and split your pay by percentage or fixed amount [1]. Your paycheck will be deposited once you complete this setup [2].\n\nIf you start mid-period, your first check will be prorated to the days you actually worked [2]. Keep in mind that any changes to direct deposit take one full pay cycle to take effect [1].",
     "sources": [
       {
         "docTitle": "Payroll and Paylocity",
@@ -28,19 +28,19 @@
         "snippet": "Set up direct deposit in your Paylocity profile during your first week —\nit's one of three items on the day-1 checklist alongside tax forms and your\nemergency contact. You can add up to 3 accounts and split pay by percen…"
       },
       {
+        "docTitle": "Payroll and Paylocity",
+        "section": "Pay schedule (semi-monthly)",
+        "snippet": "Mentella pays semi-monthly: on the 15th and on the last business day of\neach month, covering the two halves of that month. If the 15th falls on a\nweekend or holiday, pay moves to the prior business day. Salaried\nclinicia…"
+      },
+      {
         "docTitle": "Your First Week at Mentella",
         "section": "Day 1 — accounts",
         "snippet": "Sign in to your @mentella.example Google account and set up 2-step\nverification (required within 48 hours). Complete your Paylocity profile:\ndirect deposit, tax forms, and emergency contact."
-      },
-      {
-        "docTitle": "EHR Access and Accounts",
-        "section": "Who to contact",
-        "snippet": "For access requests, password issues, or locked accounts, write to\nit@mentella.example with your full name and regional pod. Include a\nscreenshot of any error message — it speeds up triage. For questions about\nwhat you'r…"
       }
     ]
   },
   "How do I request time off?": {
-    "answer": "Here's how to request time off:\n\n**For time off longer than a single day:** Submit your PTO request in Paylocity at least 2 weeks in advance [1]. Before submitting, block those dates in Calendly and cancel or reassign any client sessions already booked during that window [1]. Approval can be delayed if your calendar shows open availability while you're requesting time off [1].\n\n**For personal emergencies:** Same-day or next-day PTO doesn't require the 2-week notice—just notify your pod lead as soon as possible [1].\n\nThe key is to manage your calendar *before* you submit the request so there's no conflict between your availability and your time-off dates.",
+    "answer": "To request time off, follow these steps [1]. First, block the dates in your Calendly calendar and either cancel or reassign any clients already scheduled during that window. Then submit your PTO request in Paylocity at least 2 weeks in advance for anything longer than a single day. Approval can be delayed if your calendar still shows open availability during your requested time off, so completing the calendar step first is important [1].\n\nIf you need same-day or next-day time off for a personal emergency, you don't need the 2-week notice—just notify your pod lead as soon as you can [1].",
     "sources": [
       {
         "docTitle": "PTO and Leave",
@@ -60,7 +60,7 @@
     ]
   },
   "Where is client information allowed to live?": {
-    "answer": "Client information is allowed to live **only in the EHR (Electronic Health Record)** [1][3]. \n\nPHI—Protected Health Information—may never be created, stored, or discussed in email, Slack, shared spreadsheets, personal notes apps, text messages, or any channel outside the EHR [3]. This applies even when communicating with supervisors or about scheduling.\n\nIf you need to flag something about a client to a colleague, use the EHR's internal messaging system instead [3].",
+    "answer": "Client information is allowed to live only in the EHR — your Electronic Health Record system [1][3]. This is the single authoritative place where any client information may be created, viewed, or stored. \n\nClient information must never go into email, Slack, shared spreadsheets, personal notes apps, or text messages, even when communicating with a supervisor or about scheduling [3]. If you need to flag something about a client to a colleague, use the EHR's internal messaging feature instead [3].",
     "sources": [
       {
         "docTitle": "EHR Access and Accounts",

@@ -25,7 +25,7 @@ export default function HealthPage() {
   const f = freshness(data.lastRunAt);
   return (
     <section style={{ display: "grid", gap: 16 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+      <div className="stat-grid">
         <div className="card">
           <div style={{ fontSize: 13, color: "var(--muted)" }}>Last pipeline run</div>
           <div style={{ fontSize: 26, fontWeight: 700, color: f.color }}>{f.label}</div>

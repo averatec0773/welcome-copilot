@@ -17,7 +17,7 @@ export default function OutboxPage() {
         Every email is archived at the moment it is rendered — what you see here is
         byte-for-byte what was sent (or drafted in dry-run).
       </p>
-      <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 16, alignItems: "start" }}>
+      <div className="outbox-grid">
         <div className="card" style={{ padding: 0, maxHeight: 560, overflowY: "auto" }}>
           {emails.length === 0 && <p style={{ padding: 16 }}>No emails yet.</p>}
           {emails.map((e) => (

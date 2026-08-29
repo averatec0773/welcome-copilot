@@ -1,83 +1,108 @@
-# [PROJECT_NAME]
+# Welcome Copilot
 
-<!-- Replace this line with a one-sentence description of the project. -->
+From "Hired" in a shared spreadsheet to a personalized welcome email, an onboarding assistant, and an ops console — automatically, reliably, observably.
 
----
+> Unofficial demo built in response to Mentella Health's application task. All people, emails, and policies are fictional; recipient addresses are + aliases of the author's own inbox.
 
-> **Note for template users:** The "About this template" section below is part of the template and should be removed once you've adapted this repo for a real project. Replace it — and this note — with content about your project.
+## Live demo
 
----
+**[welcome-copilot.vercel.app](https://welcome-copilot.vercel.app)**
 
-## About this template
+What to try:
 
-`averatec-harness-template` is a starting point for building a project harness: a structured repository that gives AI developers the context they need to operate consistently and safely within a codebase.
+- Watch the **Tracker** — hires move through the pipeline in near-real time.
+- Open an email in the **Outbox** — every send is archived byte-for-byte, drafts included.
+- Check **Health** — the pipeline's dead-man's-switch, quota, and run log.
+- Ask the assistant one of its suggested questions — answered from the handbook with citations, no API cost.
 
-> **Multi-agent: Claude Code + Codex.** Both agents read one shared spec — `AGENTS.md` is a symlink to `CLAUDE.md`. Claude Code auto-loads skills in `.claude/skills/` (triggered by each skill's `description`) and reads `CLAUDE.md` at session start; Codex reads `AGENTS.md` plus `.codex/` (config + hooks). Edit `CLAUDE.md` only — `AGENTS.md` follows automatically.
+Free-form questions and simulating a new hire are gated behind an access code from the application materials.
 
-### What is a harness?
+## How it works
 
-A harness encodes how a project works — its architecture, conventions, and operational procedures — so an AI developer doesn't have to figure it out from scratch every session. Rather than relying on improvisation, the harness makes the right action easy and the wrong action obvious to avoid.
+```mermaid
+flowchart LR
+    A[HR marks row Hired] --> B[Apps Script trigger<br/>every 5 min]
+    B --> C{Validate row}
+    C -->|invalid| C1[Mark INVALID<br/>alert admin]
+    C -->|valid| D[Render welcome email]
+    D --> E[Archive to Outbox]
+    E --> F[Send via Gmail]
+    F --> G[Write back sent_at]
+    G --> H[Heartbeat ping<br/>healthchecks.io]
 
-The core idea comes from how safety harnesses work physically: they don't restrict movement, they channel it. A well-written harness makes an AI developer more capable and less likely to cause unintended side effects.
-
-### What's in this template
-
-```
-CLAUDE.md                      ← Entry point, auto-read by Claude Code
-AGENTS.md                      ← Symlink to CLAUDE.md (read by Codex)
-README.md                      ← This file
-CHANGELOG.md                   ← Project change history
-ROADMAP.md                     ← Versioned plan of pending work
-
-.claude/
-  settings.json                ← Shared permissions + SessionStart hooks
-  settings.local.json.example  ← Personal-override template (copied on first session)
-  skills/                      ← Auto-loaded by Claude Code
-    git/                       ← Commit risk classification + pre-commit checklist
-    harness/                   ← Keep CHANGELOG / ROADMAP / conventions in sync
-    memory/                    ← When and how to update memory files
-    skill-creator/             ← How to create and improve skills
-
-.codex/
-  config.toml                  ← Codex agent config
-  hooks.json                   ← Mirrors the Claude SessionStart hook
-
-conventions/
-  architecture.md              ← Directory map, layering rules, what NOT to change
-  style.md                     ← Visual / UX direction: tokens, components, patterns
-
-loop/
-  PROMPT.md                    ← Loop launch line + usage-budget protocol + task protocol (hot-editable)
-  STATE.md                     ← Self-paced /loop state; single source of truth
-
-scripts/
-  check-usage.sh               ← Subscription 5h/7d quota check (official API → native offline fallback)
-  usage-estimate.py            ← Native 5h-block token estimator (no third-party deps)
-  refresh-oauth.py             ← Refresh the local Claude Code OAuth token (reads ~/.claude credentials)
-
-changelog/
-  README.md                    ← Archive index for older CHANGELOG series
-
-memory/
-  rules.md                     ← Standing behavioral rules set by the user
-  notes.md                     ← Discoveries and manually triggered notes
-
-docs/                          ← Default home for agent-written docs; group by kind in subfolders
-  README.md                    ← The docs organizing convention
+    SHEET[(Google Sheet)] -.read-only.-> WEB[Next.js console<br/>+ assistant]
+    B -.reads/writes.-> SHEET
 ```
 
-### How to use this template
+The Apps Script pipeline and the Next.js console never talk to each other directly — they share state only through the Sheet, one read-only via a service account, one read-write via the bound script.
 
-1. Create a new repo from this template. (If you `cp` it rather than using GitHub's "Use this template", copy with symlink preservation — `cp -a` — so `AGENTS.md → CLAUDE.md` survives. Git needs `core.symlinks=true`; Windows needs Developer Mode.)
-2. Replace all `[placeholder]` and `FILL` fields across these files:
-   - `CLAUDE.md` — project name, description, stack, owner, Component Map
-   - `conventions/architecture.md` and `conventions/style.md` — your real architecture and design direction
-3. Update each skill with your project's real workflow.
-4. Remove this "About this template" section from the README and replace it with your project's own documentation.
-5. At the start of each AI session, point the AI developer to `CLAUDE.md` (Claude Code) or `AGENTS.md` (Codex).
+## Reliability, by design
 
-### Inspiration and references
+- **Idempotency** — a non-empty `welcome_sent_at` means done, forever. No re-sends on re-runs.
+- **At-most-once sends** — the row is stamped `SENDING` and flushed to the sheet *before* `GmailApp.sendEmail` is called, so a crash mid-send never leaves an email both unsent and unmarked.
+- **Writes keyed by `hire_id`, not row position** — the sheet gets sorted and edited by people mid-run; every write re-locates its row by id first.
+- **Fail-closed dry-run** — anything other than an exact `FALSE` in the config means drafts, never live mail.
+- **Quota guard** — the run stops before Gmail's daily send quota is exhausted and picks up the remaining rows next cycle.
 
-- [Harness Engineering](https://openai.com/index/harness-engineering/)
-- [Harness Design for Long-Running Apps](https://www.anthropic.com/engineering/harness-design-long-running-apps)
-- [Effective Harnesses for Long-Running Agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
+## You'd know if it broke
+
+Three independent defenses, because monitoring that depends on the thing it's watching isn't monitoring:
+
+1. **Instant error alerts** — invalid rows and pipeline exceptions email the admin the moment they happen.
+2. **Dead-man's-switch** — a heartbeat ping to [healthchecks.io](https://healthchecks.io) after every run. It watches for *silence*, so a disabled trigger, an expired auth token, or a dead script gets caught even though nothing "errored."
+3. **Daily digest** — a plain-English summary (sent, drafted, invalid, errors, quota holds, rows stuck in `SENDING`) so a human doesn't have to read the log to know the day was normal.
+
+## The assistant
+
+**Retrieval:** [MiniSearch](https://github.com/lucaong/minisearch) over the handbook's Markdown files, chunked by section. Deliberately no vector database — at nine documents, a full-text index is simpler, faster to iterate on, and has nothing to deploy. That trade-off flips once the corpus needs semantic matching across paraphrased questions or grows past what a single in-memory index can hold comfortably; either is the signal to move to embeddings.
+
+**Generation:** `claude-haiku-4-5`, answering only from the retrieved excerpts, with inline citations and instructions to say "I'm not sure" rather than guess.
+
+**Cost containment**, layered so most traffic never reaches the API:
+
+- The four suggested questions are answered from a prebaked cache — zero API calls.
+- Free-form questions require an invite code.
+- Per-IP and daily global rate caps sit behind the code as defense-in-depth.
+
+## Repo layout
+
+| Path | Contents |
+|---|---|
+| `apps-script/` | The pipeline: validation, rendering, sending, monitoring. Managed with `clasp`. |
+| `web/` | Next.js ops console (Tracker, Outbox, Health) and the handbook assistant. |
+| `docs/` | Design docs — coming with the final submission. |
+
+## Running it yourself
+
+Prerequisites:
+
+- A Google Sheet with an Apps Script project bound to it, pushed with [`clasp`](https://github.com/google/clasp).
+- A GCP service account, shared read-only on that Sheet, for the console.
+- A Vercel account to deploy `web/`.
+- An [Upstash](https://upstash.com) Redis database for rate limiting.
+- An Anthropic API key.
+
+Environment variables (`web/.env.local` for local dev, Vercel project env vars for deploys):
+
+| Variable | Description |
+|---|---|
+| `SHEET_ID` | The Google Sheet ID the console reads from. |
+| `GOOGLE_SA_KEY_PATH` | Path to the service account JSON key file (local dev only). |
+| `GOOGLE_SA_KEY_B64` | Base64-encoded service account JSON key (deploys, in place of the path). |
+| `ANTHROPIC_API_KEY` | Anthropic API key for the assistant. |
+| `UPSTASH_REDIS_REST_URL` | Upstash Redis REST endpoint, for rate limiting. |
+| `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token. |
+| `DEMO_ACCESS_CODE` | Invite code gating free-form questions and hire simulation. |
+| `HEALTHCHECKS_BADGE_URL` | Optional. Public status badge URL shown on the Health page. |
+
+```
+cd web
+npm install
+npm run dev
+```
+
+## Stack
+
+Google Apps Script (pipeline) · Next.js + React (console) · MiniSearch + Claude Haiku (assistant) · Upstash Redis (rate limiting) · Vercel (hosting).
+
+MIT licensed — see [LICENSE](LICENSE).

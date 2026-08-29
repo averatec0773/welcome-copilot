@@ -5,6 +5,7 @@ import { clientIp, getLimiters } from "@/lib/ratelimit";
 import prebaked from "@/content/prebaked.json";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 const PREBAKED = prebaked as Record<string, AskResponse>;
 

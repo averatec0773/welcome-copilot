@@ -14,7 +14,10 @@ each month, covering the two halves of that month. If the 15th falls on a
 weekend or holiday, pay moves to the prior business day. Salaried
 clinicians see the same gross amount each pay period; hourly and
 per-session staff are paid based on hours or sessions logged and approved
-in the prior period.
+in the prior period. Your first paycheck arrives on the first scheduled
+payday after your start date, paid out by direct deposit once you set up
+direct deposit in Paylocity — if you start mid-period, that first
+paycheck is prorated to the days actually worked.
 
 ## Setting up direct deposit
 
