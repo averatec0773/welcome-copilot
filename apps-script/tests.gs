@@ -17,6 +17,7 @@ function runTests() {
   check('html mentions start date', msg.html.indexOf('September') !== -1);
   const xss = renderWelcomeEmail({ name: '<b>X</b>', startDate: new Date(), state: '', manager: '', license: '' }, 'u');
   check('html escapes user data', xss.html.indexOf('<b>X</b>') === -1);
+  check('date renders English', formatStartDate(new Date(2026, 8, 15)) === 'Tuesday, September 15, 2026');
 
   Logger.log(results.join('\n'));
   const failed = results.filter(function (r) { return r.indexOf('FAIL') === 0; });
