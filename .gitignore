@@ -2,6 +2,7 @@
 TODO.md
 
 # AI agent harness (local-only, not published)
+docs/superpowers/
 CLAUDE.md
 AGENTS.md
 .claude/
@@ -15,6 +16,9 @@ ROADMAP.md
 scripts/check-usage.sh
 scripts/usage-estimate.py
 scripts/refresh-oauth.py
+
+# clasp local config
+.clasp.json
 
 # Environment
 .env
