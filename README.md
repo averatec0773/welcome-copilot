@@ -15,7 +15,7 @@ What to try:
 - Check **Health** — the pipeline's dead-man's-switch, quota, and run log.
 - Ask the assistant one of its suggested questions — answered from the handbook with citations, no API cost.
 
-Free-form questions and simulating a new hire are gated behind an access code from the application materials.
+Free-form questions are gated behind an access code from the application materials.
 
 ## How it works
 
@@ -41,7 +41,7 @@ The Apps Script pipeline and the Next.js console never talk to each other direct
 - **Idempotency** — a non-empty `welcome_sent_at` means done, forever. No re-sends on re-runs.
 - **At-most-once sends** — the row is stamped `SENDING` and flushed to the sheet *before* `GmailApp.sendEmail` is called, so a crash mid-send never leaves an email both unsent and unmarked.
 - **Writes keyed by `hire_id`, not row position** — the sheet gets sorted and edited by people mid-run; every write re-locates its row by id first.
-- **Fail-closed dry-run** — anything other than an exact `FALSE` in the config means drafts, never live mail.
+- **Fail-closed dry-run** — anything other than `FALSE` in the config means drafts, never live mail.
 - **Quota guard** — the run stops before Gmail's daily send quota is exhausted and picks up the remaining rows next cycle.
 
 ## You'd know if it broke
@@ -92,7 +92,7 @@ Environment variables (`web/.env.local` for local dev, Vercel project env vars f
 | `ANTHROPIC_API_KEY` | Anthropic API key for the assistant. |
 | `UPSTASH_REDIS_REST_URL` | Upstash Redis REST endpoint, for rate limiting. |
 | `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token. |
-| `DEMO_ACCESS_CODE` | Invite code gating free-form questions and hire simulation. |
+| `DEMO_ACCESS_CODE` | Invite code gating free-form assistant questions. |
 | `HEALTHCHECKS_BADGE_URL` | Optional. Public status badge URL shown on the Health page. |
 
 ```
