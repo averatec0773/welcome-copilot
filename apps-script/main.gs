@@ -10,7 +10,8 @@ function runPipeline() {
   try {
     assignHireIds_();
     const cfg = getConfig();
-    const dryRun = String(cfg.dry_run).toUpperCase() === 'TRUE';
+    // Fail closed: a missing or mangled dry_run row means drafts, not live mail.
+    const dryRun = String(cfg.dry_run).toUpperCase() !== 'FALSE';
     const eligible = readTrackerRows_().filter(function (r) {
       if (r.status !== TRIGGER_STATUS || r.sentAt) return false;
       if (r.welcomeStatus === 'SENDING') return false; // stuck mid-send; needs human review
@@ -58,6 +59,7 @@ function processRow_(row, cfg, dryRun, runId) {
   } else {
     // At-most-once: abort if the SENDING stamp did not land — never send unmarked.
     if (!writeBack_(sheet, row, { status: 'SENDING' })) return;
+    SpreadsheetApp.flush(); // the SENDING stamp must be durable before mail leaves
     GmailApp.sendEmail(row.email, msg.subject, '', { htmlBody: msg.html, name: 'Mentella People Ops' });
     writeBack_(sheet, row, { sentAt: new Date(), status: 'SENT', error: '' });
     log_(runId, row.hireId, 'SEND', 'sent to alias');

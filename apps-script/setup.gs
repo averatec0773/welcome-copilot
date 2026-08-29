@@ -1,9 +1,15 @@
 // One-time provisioning: tabs, headers, validation, protection, mock data.
 // Safe to re-run — it rebuilds the demo sheet from scratch.
 
-const ALIAS_BASE = 'ayetek0773';
+// The Gmail local-part for + aliases comes from Script Properties so no
+// personal identifier is hardcoded in the published source.
+function aliasBase_() {
+  const base = PropertiesService.getScriptProperties().getProperty('ALIAS_BASE');
+  if (!base) throw new Error('Set the ALIAS_BASE Script Property (Gmail local-part for + aliases) before provisioning.');
+  return base;
+}
 
-function demoEmail_(slug) { return ALIAS_BASE + '+' + slug + '@gmail.com'; }
+function demoEmail_(slug) { return aliasBase_() + '+' + slug + '@gmail.com'; }
 
 function provisionSheet() {
   const ss = ss_();
@@ -37,7 +43,7 @@ function provisionSheet() {
     .requireValueInList(STATUSES, true).setAllowInvalid(false).build();
   tracker.getRange(2, COL.STATUS, 500, 1).setDataValidation(rule);
 
-  const protection = tracker.getRange(1, COL.SENT_AT, tracker.getMaxRows(), 4)
+  const protection = tracker.getRange(1, COL.SENT_AT, tracker.getMaxRows(), 3)
     .protect().setDescription('Script-managed columns — do not edit by hand');
   protection.setWarningOnly(true);
   tracker.autoResizeColumns(1, headers.length);
