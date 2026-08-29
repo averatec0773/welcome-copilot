@@ -12,6 +12,7 @@ function aliasBase_() {
 function demoEmail_(slug) { return aliasBase_() + '+' + slug + '@gmail.com'; }
 
 function provisionSheet() {
+  aliasBase_(); // validate before destroy: fail here, not after the tabs are wiped
   const ss = ss_();
   const tracker = resetSheet_(ss, TRACKER_SHEET, 0);
   const config = resetSheet_(ss, CONFIG_SHEET, 1);
