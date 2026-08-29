@@ -56,9 +56,8 @@ function processRow_(row, cfg, dryRun, runId) {
     writeBack_(sheet, row, { status: 'DRAFTED', error: '' });
     log_(runId, row.hireId, 'DRAFT', 'draft created (dry run)');
   } else {
-    // At-most-once: a crash between here and the SENT stamp parks the row as
-    // SENDING for human review instead of double-sending on the next run.
-    writeBack_(sheet, row, { status: 'SENDING' });
+    // At-most-once: abort if the SENDING stamp did not land — never send unmarked.
+    if (!writeBack_(sheet, row, { status: 'SENDING' })) return;
     GmailApp.sendEmail(row.email, msg.subject, '', { htmlBody: msg.html, name: 'Mentella People Ops' });
     writeBack_(sheet, row, { sentAt: new Date(), status: 'SENT', error: '' });
     log_(runId, row.hireId, 'SEND', 'sent to alias');
@@ -112,14 +111,16 @@ function writeBack_(sheet, row, patch) {
   let rowIndex = row.rowIndex;
   if (String(sheet.getRange(rowIndex, COL.HIRE_ID).getValue()) !== String(row.hireId)) {
     rowIndex = findRowByHireId_(sheet, row.hireId);
-    if (rowIndex === -1) { log_('-', row.hireId, 'ERROR', 'row vanished mid-run; write skipped'); return; }
+    if (rowIndex === -1) { log_('-', row.hireId, 'ERROR', 'row vanished mid-run; write skipped'); return false; }
   }
   if (patch.sentAt !== undefined) sheet.getRange(rowIndex, COL.SENT_AT).setValue(patch.sentAt);
   if (patch.status !== undefined) sheet.getRange(rowIndex, COL.WELCOME_STATUS).setValue(patch.status);
   if (patch.error !== undefined) sheet.getRange(rowIndex, COL.ERROR_DETAIL).setValue(patch.error);
+  return true;
 }
 
 function findRowByHireId_(sheet, hireId) {
+  if (!String(hireId).trim()) return -1;
   const ids = sheet.getRange(2, COL.HIRE_ID, Math.max(sheet.getLastRow() - 1, 1), 1).getValues();
   for (let i = 0; i < ids.length; i++) {
     if (String(ids[i][0]) === String(hireId)) return i + 2;

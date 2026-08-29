@@ -38,7 +38,7 @@ function dailyDigest() {
     'Invalid rows: ' + count('INVALID'),
     'Pipeline errors: ' + count('ERROR'),
     'Runs skipped (lock busy): ' + count('LOCK_BUSY'),
-    'Sends held (quota): ' + count('QUOTA_HOLD'),
+    'Runs hitting quota floor: ' + count('QUOTA_HOLD'),
     'Rows stuck in SENDING (need review): ' + stuck,
     'Mail quota remaining today: ' + MailApp.getRemainingDailyQuota(),
     '',
@@ -49,12 +49,18 @@ function dailyDigest() {
 }
 
 function archiveDemoRows_() {
-  const sheet = ss_().getSheetByName(TRACKER_SHEET);
-  const values = sheet.getDataRange().getValues();
-  const cutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000);
-  for (let i = values.length - 1; i >= 1; i--) {
-    const isDemo = values[i][COL.IS_DEMO - 1] === true || String(values[i][COL.IS_DEMO - 1]).toUpperCase() === 'TRUE';
-    const sentAt = values[i][COL.SENT_AT - 1];
-    if (isDemo && sentAt instanceof Date && sentAt < cutoff) sheet.deleteRow(i + 1);
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) { Logger.log('archiveDemoRows_: lock busy; skipping until tomorrow'); return; }
+  try {
+    const sheet = ss_().getSheetByName(TRACKER_SHEET);
+    const values = sheet.getDataRange().getValues();
+    const cutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+    for (let i = values.length - 1; i >= 1; i--) {
+      const isDemo = values[i][COL.IS_DEMO - 1] === true || String(values[i][COL.IS_DEMO - 1]).toUpperCase() === 'TRUE';
+      const sentAt = values[i][COL.SENT_AT - 1];
+      if (isDemo && sentAt instanceof Date && sentAt < cutoff) sheet.deleteRow(i + 1);
+    }
+  } finally {
+    lock.releaseLock();
   }
 }
