@@ -6,7 +6,13 @@ let limiters: { perIp: Ratelimit; global: Ratelimit; unlockGlobal: Ratelimit } |
 
 export function getLimiters() {
   if (!limiters) {
-    const redis = Redis.fromEnv();
+    // Accept both naming schemes: UPSTASH_* (direct Upstash) and KV_* (what the
+    // Vercel Marketplace integration injects). Throw fast instead of letting the
+    // client retry against an undefined URL.
+    const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
+    if (!url || !token) throw new Error("Redis env missing: set UPSTASH_REDIS_REST_* or KV_REST_API_*");
+    const redis = new Redis({ url, token });
     limiters = {
       perIp: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(8, "1 m"), prefix: "ask:ip" }),
       global: new Ratelimit({ redis, limiter: Ratelimit.fixedWindow(300, "1 d"), prefix: "ask:global" }),
