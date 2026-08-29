@@ -13,6 +13,8 @@ describe("buildPrompt", () => {
     ]);
     expect(p).toContain("[1] EHR Access — Password resets");
     expect(p).toContain("Use the self-service link.");
+    expect(p).toContain("<excerpts>");
+    expect(p).toContain("</excerpts>");
     expect(p.trim().endsWith("How do I reset my password?")).toBe(true);
   });
 });

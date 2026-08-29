@@ -10,7 +10,7 @@ export function getLimiters() {
     limiters = {
       perIp: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(8, "1 m"), prefix: "ask:ip" }),
       global: new Ratelimit({ redis, limiter: Ratelimit.fixedWindow(300, "1 d"), prefix: "ask:global" }),
-      unlockGlobal: new Ratelimit({ redis, limiter: Ratelimit.fixedWindow(100, "1 d"), prefix: "unlock:global" }),
+      unlockGlobal: new Ratelimit({ redis, limiter: Ratelimit.fixedWindow(1000, "1 d"), prefix: "unlock:global" }),
     };
   }
   return limiters;

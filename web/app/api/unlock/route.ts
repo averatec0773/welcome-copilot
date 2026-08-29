@@ -18,7 +18,9 @@ export async function POST(req: NextRequest) {
     console.error("rate limiter unavailable:", e);
     return NextResponse.json({ error: "limiter_unavailable" }, { status: 503 });
   }
-  if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  if (!rl.success) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: { "Retry-After": "60" } });
+  }
 
   let g;
   try {
