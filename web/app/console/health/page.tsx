@@ -58,7 +58,7 @@ export default function HealthPage() {
           </thead>
           <tbody>
             {data.logs.map((l, i) => (
-              <tr key={i}>
+              <tr key={`${l.runId}-${l.hireId}-${i}`}>
                 <td>{l.timestamp}</td>
                 <td style={{ fontFamily: "monospace", fontSize: 12 }}>{l.runId}</td>
                 <td>{l.hireId}</td>

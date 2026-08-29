@@ -5,11 +5,12 @@ import type { OutboxEmail } from "@/lib/sheets";
 
 export default function OutboxPage() {
   const { data, error } = usePoll<{ emails: OutboxEmail[] }>("/api/outbox");
-  const [selected, setSelected] = useState(0);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   if (error) return <p className="card">Outbox unavailable: {error}</p>;
   if (!data) return <p>Loading outbox…</p>;
   const emails = data.emails;
-  const current = emails[selected];
+  const keyOf = (e: OutboxEmail) => `${e.hireId}-${e.sentAt}`;
+  const current = emails.find((e) => keyOf(e) === selectedKey) ?? emails[0];
   return (
     <section>
       <p style={{ color: "var(--muted)", fontSize: 13 }}>
@@ -19,14 +20,14 @@ export default function OutboxPage() {
       <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 16, alignItems: "start" }}>
         <div className="card" style={{ padding: 0, maxHeight: 560, overflowY: "auto" }}>
           {emails.length === 0 && <p style={{ padding: 16 }}>No emails yet.</p>}
-          {emails.map((e, i) => (
+          {emails.map((e) => (
             <button
-              key={`${e.hireId}-${e.sentAt}`}
-              onClick={() => setSelected(i)}
+              key={keyOf(e)}
+              onClick={() => setSelectedKey(keyOf(e))}
               style={{
                 display: "block", width: "100%", textAlign: "left", border: "none",
                 borderBottom: "1px solid var(--border)", cursor: "pointer", padding: "12px 14px",
-                background: i === selected ? "var(--accent-soft)" : "transparent",
+                background: current && keyOf(e) === keyOf(current) ? "var(--accent-soft)" : "transparent",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
