@@ -11,19 +11,26 @@ function runPipeline() {
     assignHireIds_();
     const cfg = getConfig();
     const dryRun = String(cfg.dry_run).toUpperCase() === 'TRUE';
-    readTrackerRows_()
-      .filter(function (r) {
-        if (r.status !== TRIGGER_STATUS || r.sentAt) return false;
-        if (dryRun && r.welcomeStatus === 'DRAFTED') return false; // don't re-draft
-        return true;
-      })
-      .forEach(function (r) { processRow_(r, cfg, dryRun, runId); });
+    const eligible = readTrackerRows_().filter(function (r) {
+      if (r.status !== TRIGGER_STATUS || r.sentAt) return false;
+      if (r.welcomeStatus === 'SENDING') return false; // stuck mid-send; needs human review
+      if (dryRun && r.welcomeStatus === 'DRAFTED') return false; // don't re-draft
+      return true;
+    });
+    for (let i = 0; i < eligible.length; i++) {
+      if (!dryRun && MailApp.getRemainingDailyQuota() < QUOTA_FLOOR) {
+        log_(runId, '-', 'QUOTA_HOLD', (eligible.length - i) + ' row(s) held; retry next run');
+        break;
+      }
+      processRow_(eligible[i], cfg, dryRun, runId);
+    }
     setConfigValue('last_run_at', new Date().toISOString());
     setConfigValue('mail_quota_remaining', MailApp.getRemainingDailyQuota());
     pingHeartbeat();
   } catch (e) {
     log_(runId, '-', 'ERROR', String(e));
-    alertAdmin('Pipeline error', String(e && e.stack ? e.stack : e));
+    try { alertAdmin('Pipeline error', String(e && e.stack ? e.stack : e)); }
+    catch (alertErr) { Logger.log('Alert failed: ' + alertErr); }
     throw e;
   } finally {
     lock.releaseLock();
@@ -34,27 +41,26 @@ function processRow_(row, cfg, dryRun, runId) {
   const sheet = ss_().getSheetByName(TRACKER_SHEET);
   const v = validateRow(row);
   if (!v.ok) {
-    // Re-validated every run so a fixed row heals itself; alert only on transition.
-    if (row.welcomeStatus !== 'INVALID') {
-      writeBack_(sheet, row.rowIndex, { status: 'INVALID', error: v.errors.join('; ') });
+    const firstTime = row.welcomeStatus !== 'INVALID';
+    writeBack_(sheet, row, { status: 'INVALID', error: v.errors.join('; ') });
+    if (firstTime) {
       log_(runId, row.hireId, 'INVALID', v.errors.join('; '));
       alertAdmin('Invalid hire row ' + row.hireId, v.errors.join('\n') + '\nFix the row; it will send on the next run.');
     }
-    return;
-  }
-  if (!dryRun && MailApp.getRemainingDailyQuota() < QUOTA_FLOOR) {
-    log_(runId, row.hireId, 'QUOTA_HOLD', 'daily quota low; retry next run');
     return;
   }
   const msg = renderWelcomeEmail(row, cfg.assistant_url);
   appendOutbox_(row, msg, dryRun);
   if (dryRun) {
     GmailApp.createDraft(row.email, msg.subject, '', { htmlBody: msg.html });
-    writeBack_(sheet, row.rowIndex, { status: 'DRAFTED', error: '' });
+    writeBack_(sheet, row, { status: 'DRAFTED', error: '' });
     log_(runId, row.hireId, 'DRAFT', 'draft created (dry run)');
   } else {
+    // At-most-once: a crash between here and the SENT stamp parks the row as
+    // SENDING for human review instead of double-sending on the next run.
+    writeBack_(sheet, row, { status: 'SENDING' });
     GmailApp.sendEmail(row.email, msg.subject, '', { htmlBody: msg.html, name: 'Mentella People Ops' });
-    writeBack_(sheet, row.rowIndex, { sentAt: new Date(), status: 'SENT', error: '' });
+    writeBack_(sheet, row, { sentAt: new Date(), status: 'SENT', error: '' });
     log_(runId, row.hireId, 'SEND', 'sent to alias');
   }
 }
@@ -87,21 +93,38 @@ function assignHireIds_() {
   const values = sheet.getDataRange().getValues();
   let max = 0;
   values.slice(1).forEach(function (v) {
-    const m = /^H-(\d+)$/.exec(String(v[COL.HIRE_ID - 1]));
+    const m = /^H-(\d+)$/i.exec(String(v[COL.HIRE_ID - 1]).trim());
     if (m) max = Math.max(max, parseInt(m[1], 10));
   });
   values.slice(1).forEach(function (v, i) {
-    if (!v[COL.HIRE_ID - 1] && (v[COL.NAME - 1] || v[COL.EMAIL - 1])) {
+    if (!String(v[COL.HIRE_ID - 1]).trim() && (v[COL.NAME - 1] || v[COL.EMAIL - 1])) {
+      const cell = sheet.getRange(i + 2, COL.HIRE_ID);
+      if (String(cell.getValue()).trim()) return; // live cell gained an id since snapshot
       max += 1;
-      sheet.getRange(i + 2, COL.HIRE_ID).setValue('H-' + ('0000' + max).slice(-4));
+      cell.setValue('H-' + String(max).padStart(4, '0'));
     }
   });
 }
 
-function writeBack_(sheet, rowIndex, patch) {
+// Writes are verified against hire_id before landing: the sheet can be
+// sorted or edited mid-run, so the captured row index is a hint, not a key.
+function writeBack_(sheet, row, patch) {
+  let rowIndex = row.rowIndex;
+  if (String(sheet.getRange(rowIndex, COL.HIRE_ID).getValue()) !== String(row.hireId)) {
+    rowIndex = findRowByHireId_(sheet, row.hireId);
+    if (rowIndex === -1) { log_('-', row.hireId, 'ERROR', 'row vanished mid-run; write skipped'); return; }
+  }
   if (patch.sentAt !== undefined) sheet.getRange(rowIndex, COL.SENT_AT).setValue(patch.sentAt);
   if (patch.status !== undefined) sheet.getRange(rowIndex, COL.WELCOME_STATUS).setValue(patch.status);
   if (patch.error !== undefined) sheet.getRange(rowIndex, COL.ERROR_DETAIL).setValue(patch.error);
+}
+
+function findRowByHireId_(sheet, hireId) {
+  const ids = sheet.getRange(2, COL.HIRE_ID, Math.max(sheet.getLastRow() - 1, 1), 1).getValues();
+  for (let i = 0; i < ids.length; i++) {
+    if (String(ids[i][0]) === String(hireId)) return i + 2;
+  }
+  return -1;
 }
 
 function appendOutbox_(row, msg, dryRun) {

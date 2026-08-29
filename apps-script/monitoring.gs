@@ -29,6 +29,8 @@ function dailyDigest() {
   const count = function (a) {
     return entries.filter(function (r) { return r[3] === a; }).length;
   };
+  const stuck = ss_().getSheetByName(TRACKER_SHEET).getDataRange().getValues().slice(1)
+    .filter(function (r) { return r[COL.WELCOME_STATUS - 1] === 'SENDING' && !r[COL.SENT_AT - 1]; }).length;
   const body = [
     'welcome-copilot pipeline — last 24h',
     'Emails sent: ' + count('SEND'),
@@ -36,6 +38,8 @@ function dailyDigest() {
     'Invalid rows: ' + count('INVALID'),
     'Pipeline errors: ' + count('ERROR'),
     'Runs skipped (lock busy): ' + count('LOCK_BUSY'),
+    'Sends held (quota): ' + count('QUOTA_HOLD'),
+    'Rows stuck in SENDING (need review): ' + stuck,
     'Mail quota remaining today: ' + MailApp.getRemainingDailyQuota(),
     '',
     'No news from me tomorrow would itself be a signal — check the triggers.',
