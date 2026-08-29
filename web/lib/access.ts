@@ -9,16 +9,18 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export function accessToken(): string {
-  const code = process.env.DEMO_ACCESS_CODE ?? "";
+  const code = (process.env.DEMO_ACCESS_CODE ?? "").trim();
+  if (!code) return "";
   return createHmac("sha256", code).update("welcome-copilot-unlock-v1").digest("hex");
 }
 
 export function verifyCode(code: string): boolean {
-  const expected = process.env.DEMO_ACCESS_CODE ?? "";
+  const expected = (process.env.DEMO_ACCESS_CODE ?? "").trim();
   return Boolean(expected) && Boolean(code) && safeEqual(code, expected);
 }
 
 export function hasAccess(cookieValue: string | undefined): boolean {
-  if (!cookieValue || !process.env.DEMO_ACCESS_CODE) return false;
+  const expected = (process.env.DEMO_ACCESS_CODE ?? "").trim();
+  if (!cookieValue || !expected) return false;
   return safeEqual(cookieValue, accessToken());
 }

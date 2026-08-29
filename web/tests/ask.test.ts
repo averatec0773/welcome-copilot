@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildPrompt, SUGGESTED_QUESTIONS } from "@/lib/claude";
+import prebaked from "@/content/prebaked.json";
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe("buildPrompt", () => {
   it("numbers excerpts and appends the question", () => {
@@ -18,9 +23,15 @@ describe("SUGGESTED_QUESTIONS", () => {
   });
 });
 
+describe("prebaked.json", () => {
+  it("has exactly one entry per suggested question, kept in sync", () => {
+    expect(Object.keys(prebaked).sort()).toEqual([...SUGGESTED_QUESTIONS].sort());
+  });
+});
+
 describe("access", () => {
   it("accepts the right code, rejects wrong ones, round-trips the cookie token", async () => {
-    process.env.DEMO_ACCESS_CODE = "test-code";
+    vi.stubEnv("DEMO_ACCESS_CODE", "test-code");
     const { verifyCode, accessToken, hasAccess } = await import("@/lib/access");
     expect(verifyCode("test-code")).toBe(true);
     expect(verifyCode("wrong")).toBe(false);
@@ -28,5 +39,14 @@ describe("access", () => {
     expect(hasAccess(accessToken())).toBe(true);
     expect(hasAccess("forged")).toBe(false);
     expect(hasAccess(undefined)).toBe(false);
+  });
+
+  it("fails closed when DEMO_ACCESS_CODE is unset or whitespace-only", async () => {
+    const { verifyCode, hasAccess } = await import("@/lib/access");
+    for (const value of ["", "   "]) {
+      vi.stubEnv("DEMO_ACCESS_CODE", value);
+      expect(verifyCode("anything")).toBe(false);
+      expect(hasAccess("anything")).toBe(false);
+    }
   });
 });

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ACCESS_COOKIE, hasAccess } from "@/lib/access";
 import { answerQuestion, SUGGESTED_QUESTIONS, type AskResponse } from "@/lib/claude";
-import { getLimiters } from "@/lib/ratelimit";
+import { clientIp, getLimiters } from "@/lib/ratelimit";
 import prebaked from "@/content/prebaked.json";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,10 @@ export async function POST(req: NextRequest) {
   if (!question) return NextResponse.json({ error: "empty_question" }, { status: 400 });
 
   // Suggested questions are open to everyone and cost nothing: cached answers.
-  const baked = PREBAKED[question];
+  // Only serve from the prebaked table for the exact suggested strings — an
+  // arbitrary question that happens to collide with a JSON prototype key
+  // (e.g. "constructor") must never short-circuit into a bogus cache hit.
+  const baked = SUGGESTED_QUESTIONS.includes(question) ? PREBAKED[question] : undefined;
   if (baked) return NextResponse.json({ ...baked, cached: true });
 
   // Free-form questions call Claude — they need the access code…
@@ -28,17 +31,34 @@ export async function POST(req: NextRequest) {
   }
 
   // …and stay rate-limited as defense-in-depth even then.
-  const ip = (req.headers.get("x-forwarded-for") ?? "unknown").split(",")[0].trim();
-  const { perIp, global: globalLimit } = getLimiters();
+  const ip = clientIp(req);
 
-  const ipRes = await perIp.limit(ip);
+  let ipRes;
+  try {
+    ipRes = await getLimiters().perIp.limit(ip);
+  } catch (e) {
+    console.error("rate limiter unavailable:", e);
+    return NextResponse.json({ error: "limiter_unavailable" }, { status: 503 });
+  }
   if (!ipRes.success) {
-    return NextResponse.json({ error: "rate_limited", retryAfterSeconds: 60 }, { status: 429 });
+    return NextResponse.json(
+      { error: "rate_limited", retryAfterSeconds: 60 },
+      { status: 429, headers: { "Retry-After": "60" } },
+    );
   }
 
-  const globalRes = await globalLimit.limit("all");
+  let globalRes;
+  try {
+    globalRes = await getLimiters().global.limit("all");
+  } catch (e) {
+    console.error("rate limiter unavailable:", e);
+    return NextResponse.json({ error: "limiter_unavailable" }, { status: 503 });
+  }
   if (!globalRes.success) {
-    return NextResponse.json({ error: "daily_budget_exhausted" }, { status: 429 });
+    return NextResponse.json(
+      { error: "daily_budget_exhausted" },
+      { status: 429, headers: { "Retry-After": "3600" } },
+    );
   }
 
   try {

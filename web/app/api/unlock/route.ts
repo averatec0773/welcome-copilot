@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ACCESS_COOKIE, accessToken, hasAccess, verifyCode } from "@/lib/access";
-import { getLimiters } from "@/lib/ratelimit";
+import { clientIp, getLimiters } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
 
@@ -9,10 +9,27 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const ip = (req.headers.get("x-forwarded-for") ?? "unknown").split(",")[0].trim();
-  const { perIp } = getLimiters();
-  const rl = await perIp.limit(`unlock:${ip}`);
+  const ip = clientIp(req);
+
+  let rl;
+  try {
+    rl = await getLimiters().perIp.limit(`unlock:${ip}`);
+  } catch (e) {
+    console.error("rate limiter unavailable:", e);
+    return NextResponse.json({ error: "limiter_unavailable" }, { status: 503 });
+  }
   if (!rl.success) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
+  let g;
+  try {
+    g = await getLimiters().unlockGlobal.limit("all");
+  } catch (e) {
+    console.error("rate limiter unavailable:", e);
+    return NextResponse.json({ error: "limiter_unavailable" }, { status: 503 });
+  }
+  if (!g.success) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: { "Retry-After": "3600" } });
+  }
 
   let code = "";
   try {
