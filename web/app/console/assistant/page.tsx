@@ -21,7 +21,7 @@ export default function AssistantPage() {
   }, []);
   useEffect(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), [msgs]);
 
-  async function unlock(e: React.FormEvent) {
+  async function unlock(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     const c = code.trim();
     if (!c || unlockBusy) return;

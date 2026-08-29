@@ -15,14 +15,14 @@ const CARDS = [
       "Idempotency, hire_id-keyed writes, at-most-once SENDING state, a quota guard, and a fail-closed dry-run — the pipeline never double-sends and never guesses.",
   },
   {
-    title: "You'd know if it broke",
-    body: "Three defenses: instant error alerts, a dead-man's-switch, and a daily digest.",
+    title: "You’d know if it broke",
+    body: "Three defenses: instant error alerts, a dead-man’s-switch, and a daily digest.",
     href: "/console/health",
     linkLabel: "See the health console →",
   },
   {
     title: "An assistant, not a search box",
-    body: "Retrieval + Claude with citations and honest refusals — it answers from the handbook or says it doesn't know.",
+    body: "Retrieval + Claude with citations and honest refusals — it answers from the handbook or says it doesn’t know.",
     href: "/console/assistant",
     linkLabel: "Ask it something →",
   },
