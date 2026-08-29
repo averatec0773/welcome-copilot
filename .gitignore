@@ -35,6 +35,7 @@ __pycache__/
 dist/
 build/
 out/
+.next/
 *.egg-info/
 
 # IDE
