@@ -9,6 +9,9 @@ const TABS = [
   { href: "/console/assistant", label: "Assistant" },
 ];
 
+const SHEET_URL =
+  "https://docs.google.com/spreadsheets/d/138TahrgW_LzR5h1nIHXqdPtQNxi8jOeQcPeiQdOdO6w/edit";
+
 export default function ConsoleLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   return (
@@ -18,6 +21,14 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
           Welcome Copilot
         </Link>
         <span style={{ color: "var(--muted)", fontSize: 14 }}>Ops Console — read-only</span>
+        <a
+          href={SHEET_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ marginLeft: "auto", fontSize: 13, fontWeight: 600 }}
+        >
+          Open the shared Google Sheet ↗
+        </a>
       </header>
       <nav style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border)", marginBottom: 24 }}>
         {TABS.map((t) => (

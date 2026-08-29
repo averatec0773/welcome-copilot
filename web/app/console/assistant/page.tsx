@@ -19,7 +19,12 @@ export default function AssistantPage() {
     fetch("/api/ask").then((r) => r.json()).then((j) => setSuggested(j.suggested ?? []));
     fetch("/api/unlock").then((r) => r.json()).then((j) => setUnlocked(!!j.unlocked));
   }, []);
-  useEffect(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), [msgs]);
+  useEffect(() => {
+    // Braces matter: scrollIntoView returns a Promise in newer Chrome, and an
+    // expression-bodied arrow would hand that Promise to React as the effect
+    // "cleanup", crashing on unmount.
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [msgs]);
 
   async function unlock(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();

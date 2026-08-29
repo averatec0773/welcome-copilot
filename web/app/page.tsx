@@ -98,7 +98,14 @@ export default function Home() {
         </div>
         <p style={{ textAlign: "center", color: "var(--muted)", fontSize: 14, marginTop: 20 }}>
           The spreadsheet stays the source of truth &mdash; the automation works around how the
-          team already works.
+          team already works.{" "}
+          <a
+            href="https://docs.google.com/spreadsheets/d/138TahrgW_LzR5h1nIHXqdPtQNxi8jOeQcPeiQdOdO6w/edit"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            See the actual shared Google Sheet ↗
+          </a>
         </p>
       </section>
 
