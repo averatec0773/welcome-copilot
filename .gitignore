@@ -1,0 +1,53 @@
+# Personal (untrack to keep local: git rm --cached TODO.md)
+TODO.md
+
+# AI agent harness (local-only, not published)
+CLAUDE.md
+AGENTS.md
+.claude/
+.codex/
+conventions/
+memory/
+loop/
+changelog/
+CHANGELOG.md
+ROADMAP.md
+scripts/check-usage.sh
+scripts/usage-estimate.py
+scripts/refresh-oauth.py
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+vendor/
+__pycache__/
+*.pyc
+
+# Build output
+dist/
+build/
+out/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+coverage/
+.coverage
+htmlcov/
