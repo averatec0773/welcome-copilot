@@ -36,6 +36,7 @@ dist/
 build/
 out/
 .next/
+*.tsbuildinfo
 *.egg-info/
 
 # IDE
