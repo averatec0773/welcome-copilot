@@ -1,22 +1,18 @@
-# Makefile for [PROJECT_NAME]
-# Common project commands. Run `make help` to see all available targets.
+# Welcome Copilot — common commands. Run `make help` for the list.
 
-.PHONY: help setup test build deploy clean
+.PHONY: help dev build test push-script
 
-help:
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\n", $$1, $$2}'
+help: ## List available targets
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
 
-setup: ## Set up local development environment
-	@echo "See skills/setup/SKILL.md for setup instructions"
+dev: ## Run the web app locally (http://localhost:3000)
+	cd web && npm run dev
 
-test: ## Run tests
-	@echo "Replace with your test command"
+build: ## Production build of the web app
+	cd web && npm run build
 
-build: ## Build the project
-	@echo "Replace with your build command"
+test: ## Run web unit tests
+	cd web && npm test
 
-deploy: ## Deploy (read skills/deploy/SKILL.md first)
-	@echo "See skills/deploy/SKILL.md before deploying"
-
-clean: ## Clean build artifacts
-	@echo "Replace with your clean command"
+push-script: ## Push Apps Script sources to the bound project
+	cd apps-script && clasp push
