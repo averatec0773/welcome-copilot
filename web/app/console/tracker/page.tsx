@@ -88,7 +88,7 @@ function LifecycleStrip() {
           }}
         >
           <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600, marginRight: 4 }}>
-            pipeline, every 5 min
+            the pipeline
           </span>
           <span style={CHIP_STYLE}>validate</span>
           {ARROW}
@@ -102,8 +102,10 @@ function LifecycleStrip() {
         <span style={{ ...CHIP_STYLE, fontWeight: 700 }}>SENT</span>
       </div>
       <p style={{ fontSize: 12.5, color: "var(--muted)", margin: "10px 0 0" }}>
-        A row that fails validation is marked INVALID. A second row with the same email is
-        marked DUPLICATE. Two rows above are broken on purpose so you can watch both guards fire.
+        Rows edited by hand in the sheet are picked up within 5 minutes; the Simulate button
+        triggers the same run immediately. A row that fails validation is marked INVALID, and a
+        second row with the same email is marked DUPLICATE. Two rows above are broken on
+        purpose so you can watch both guards fire.
       </p>
     </div>
   );

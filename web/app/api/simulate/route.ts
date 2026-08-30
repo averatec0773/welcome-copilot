@@ -6,7 +6,7 @@ import { appendTrackerRow, mapConfig, mapTrackerRows, readRange } from "@/lib/sh
 import { buildSimulateRow, countPendingDemoRows, isQuotaLow, isValidEmail } from "@/lib/simulate";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 const SHEET_ID = "138TahrgW_LzR5h1nIHXqdPtQNxi8jOeQcPeiQdOdO6w";
 
@@ -129,26 +129,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "append_failed" }, { status: 502 });
   }
 
-  // Best-effort nudge — the 5-minute Apps Script trigger picks this row up
-  // regardless, so a failed poke never blocks the response. The webhook runs
-  // the whole pipeline synchronously before responding, so give it real
-  // headroom — 10s could time out on a normal run and misreport poked:false.
+  // Immediate trigger — the 5-minute Apps Script trigger picks this row up
+  // regardless, so a failed poke never blocks the response, but the promise
+  // to the visitor is "about thirty seconds", so a transient failure gets one
+  // retry instead of silently demoting them to the timer. The webhook runs
+  // the whole pipeline synchronously, so each attempt gets real headroom, and
+  // a duplicate poke is safe: the pipeline is idempotent per row.
   let poked = false;
   const webhookUrl = process.env.GAS_WEBHOOK_URL;
   if (webhookUrl) {
-    try {
-      const res = await fetch(webhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: process.env.SIMULATE_TOKEN ?? "", alias, visitorEmail }),
-        signal: AbortSignal.timeout(25000),
-      });
-      if (res.ok) {
-        const j = await res.json().catch(() => null);
-        poked = j?.ok === true;
+    for (let attempt = 1; attempt <= 2 && !poked; attempt++) {
+      try {
+        const res = await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: process.env.SIMULATE_TOKEN ?? "", alias, visitorEmail }),
+          signal: AbortSignal.timeout(22000),
+        });
+        if (res.ok) {
+          const j = await res.json().catch(() => null);
+          poked = j?.ok === true;
+        }
+      } catch (e) {
+        console.error(`webhook poke attempt ${attempt} failed:`, e);
       }
-    } catch (e) {
-      console.error("webhook poke failed:", e);
     }
   }
 

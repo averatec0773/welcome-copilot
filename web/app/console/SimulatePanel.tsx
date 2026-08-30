@@ -53,8 +53,8 @@ const MAX_POLL_ATTEMPTS = 36; // 36 × 10s ≈ 6 minutes
 const EXPLAIN_PROPS = {
   title: "Trigger the real pipeline yourself",
   points: [
-    "This appends a genuine row to the shared sheet, exactly like HR marking someone Hired.",
-    "The pipeline validates the row, renders the email, archives it, then sends it to a + alias of the author's own inbox.",
+    "This appends a genuine row to the shared sheet, exactly like HR marking someone Hired, then triggers the pipeline immediately. No waiting for the 5-minute sweep.",
+    "The pipeline validates the row, renders the email, archives it, then sends it. The email is usually out within thirty seconds.",
     "Watch every stage below, or open the sheet and see your row land.",
   ],
 };
@@ -185,9 +185,10 @@ export default function SimulatePanel() {
       <h2 style={{ marginBottom: 8 }}>Simulate a hire</h2>
       <Explain {...EXPLAIN_PROPS} />
       <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>
-        {wantCopy
-          ? "The pipeline always sends to a + alias of the author's own inbox. If you add your email below, you get one copy of that same email. No list, no follow-up."
-          : "The recipient is always a + alias of the author's own inbox, never you or anyone else."}
+        The welcome email always goes to a + alias of the author&rsquo;s own inbox, so the demo
+        never emails a stranger. If you&rsquo;d like to read it in your own inbox too, tick the
+        box below and you get one copy of the same email. Your address never appears anywhere
+        public: the sheet and the console only ever show the alias. No list, no follow-up.
       </p>
 
       {!result && (
@@ -258,8 +259,8 @@ export default function SimulatePanel() {
           </div>
           <div style={{ fontSize: 14, color: "var(--muted)" }}>
             {result.poked
-              ? "Pipeline nudged. The email usually goes out within 30 seconds."
-              : "The nudge failed, so the 5-minute timer will pick this row up instead. If you asked for a copy, it may not arrive in that case."}
+              ? "Pipeline triggered. The email usually goes out within thirty seconds."
+              : "The immediate trigger failed, so the 5-minute timer will pick this row up instead. If you asked for a copy, it may not arrive in that case."}
           </div>
           <div style={{ fontSize: 14 }}>
             Status:{" "}

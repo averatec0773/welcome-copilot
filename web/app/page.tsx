@@ -131,7 +131,11 @@ export default function Home() {
           </div>
           <DownArrow />
           <div className="card" style={{ padding: "16px 20px" }}>
-            <LaneLabel>2 · The pipeline, every 5 minutes</LaneLabel>
+            <LaneLabel>2 · The pipeline</LaneLabel>
+            <p style={{ margin: "0 0 10px", fontSize: 15 }}>
+              A row edited by hand is picked up within 5 minutes. The console&rsquo;s
+              Simulate button triggers the same pipeline immediately.
+            </p>
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
               {/* The arrow LEADS its chip: a wrapped chip carries its arrow to
                   the new line, so no row ends with an arrow pointing at nothing. */}
@@ -180,8 +184,8 @@ export default function Home() {
         </div>
         <p style={{ textAlign: "center", color: "var(--muted)", fontSize: 15, marginTop: 24 }}>
           To watch it run end to end, open the Tracker and press{" "}
-          <strong>▶ Simulate a hire</strong> (access code required). It appends a real row, and a
-          real email goes out.
+          <strong>▶ Simulate a hire</strong> (access code required). It appends a real row,
+          triggers the pipeline immediately, and a real email goes out in about thirty seconds.
         </p>
       </section>
 
