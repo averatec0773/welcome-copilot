@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { usePoll } from "@/lib/usePoll";
 import type { OutboxEmail } from "@/lib/sheets";
+import { Explain } from "../Explain";
 
 export default function OutboxPage() {
   const { data, error } = usePoll<{ emails: OutboxEmail[] }>("/api/outbox");
@@ -13,10 +14,15 @@ export default function OutboxPage() {
   const current = emails.find((e) => keyOf(e) === selectedKey) ?? emails[0];
   return (
     <section>
-      <p style={{ color: "var(--muted)", fontSize: 13 }}>
-        Every email is archived at the moment it is rendered — the Log records whether
-        it actually left.
-      </p>
+      <Explain
+        title="Every email, archived at the moment it was rendered"
+        points={[
+          "What you read here is exactly what the recipient got — byte for byte.",
+          "LIVE = actually sent. DRAFT = dry-run rehearsal, never left the building.",
+          "Archive-then-send order means even a failed send leaves evidence.",
+          "The Log (Health tab) records whether that archived email actually left.",
+        ]}
+      />
       <div className="outbox-grid">
         <div className="card" style={{ padding: 0, maxHeight: 560, overflowY: "auto" }}>
           {emails.length === 0 && <p style={{ padding: 16 }}>No emails yet.</p>}

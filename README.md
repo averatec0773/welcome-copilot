@@ -13,8 +13,9 @@ What to try:
 - Watch the **Tracker** — hires move through the pipeline in near-real time.
 - Open an email in the **Outbox** — every send is archived byte-for-byte, drafts included.
 - Check **Health** — the pipeline's dead-man's-switch, quota, and run log.
+- Read the **Operator Inbox** — the actual alert and daily-digest emails the pipeline sends itself.
 - Ask the assistant one of its suggested questions — answered from the handbook with citations, no API cost.
-- Open **Utilization** — a validated CSV-export report, no API involved at all.
+- A validated CSV-export report, no API involved at all, is available at `/console/utilization` (not in the main nav).
 
 Free-form questions are gated behind an access code from the application materials.
 
@@ -72,8 +73,9 @@ Three independent defenses, because monitoring that depends on the thing it's wa
 ## Utilization slice — the no-API craft: validated manual exports → SQL → report
 
 Several core clinical and billing systems in a real practice expose no API — only a
-scheduled manual CSV export. The **Utilization** console tab treats that export as the
-interface instead of pretending it doesn't exist: two mock monthly billing exports
+scheduled manual CSV export. This slice, available at `/console/utilization` (not in the
+main nav), treats that export as the interface instead of pretending it doesn't exist: two
+mock monthly billing exports
 (`web/data/billing-export-2026-0{7,8}.csv`) are loaded into an in-memory SQLite database
 via [sql.js](https://github.com/sql-js/sql.js) at build time, run through a set of loud
 validations (row counts, date ranges, duplicate rows, unknown clinician ids against a

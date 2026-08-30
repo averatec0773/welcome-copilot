@@ -37,6 +37,12 @@ function doPost(e) {
   const visitorEmail = String(body.visitorEmail || '').trim();
   if (alias && visitorEmail && EMAIL_RE.test(visitorEmail)) {
     cache.put('demo-copy:' + alias.toLowerCase(), visitorEmail, 21600);
+    try {
+      log_('-', '-', 'COPY_QUEUED', 'copy requested for ' + alias);
+    } catch (e) {
+      // Never let a log-append hiccup block the simulate webhook itself.
+      Logger.log('COPY_QUEUED log failed: ' + e);
+    }
   }
 
   try {

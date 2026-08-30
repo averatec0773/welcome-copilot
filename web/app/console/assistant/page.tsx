@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { Explain } from "../Explain";
 
 type Source = { docTitle: string; section: string; snippet: string; updated: string };
 type Msg = { role: "user" | "assistant"; text: string; sources?: Source[]; limited?: boolean; cached?: boolean };
@@ -111,10 +112,14 @@ export default function AssistantPage() {
 
   return (
     <section style={{ maxWidth: 720 }}>
-      <p style={{ color: "var(--muted)", fontSize: 13 }}>
-        Answers come only from the new-therapist handbook (policies &amp; procedures — never
-        client data). Out-of-scope questions get an honest &ldquo;I&rsquo;m not sure.&rdquo;
-      </p>
+      <Explain
+        title="An assistant that only knows the handbook"
+        points={[
+          "Answers come from 9 onboarding docs, with citations and each doc's last-updated date.",
+          "If the handbook doesn't cover it, it says so — instead of guessing.",
+          "Suggested questions are free for everyone; free-form questions need the access code.",
+        ]}
+      />
       <div className="card" style={{ minHeight: 380, display: "flex", flexDirection: "column", gap: 12 }}>
         {msgs.length === 0 && chips}
         {msgs.length > 0 && !unlocked && chips}

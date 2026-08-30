@@ -1,12 +1,13 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { Hire, OutboxEmail } from "@/lib/sheets";
+import { Explain } from "../Explain";
 
 type SimulateResult = { alias: string; name: string; row: number; sheetLink: string; poked: boolean };
 
 const ERROR_MESSAGES: Record<string, string> = {
   locked: "This needs an access code — see below.",
-  rate_limited: "One simulation at a time, and a handful per hour across all visitors. Try again shortly.",
+  rate_limited: "Rate limited — each visitor can simulate 3 times an hour (and the whole demo once per 10 minutes). Try again in a bit.",
   limiter_unavailable: "The rate limiter is unavailable right now — try again in a moment.",
   demo_backlog: "There are already several demo hires mid-pipeline. Give them a few minutes to finish, then retry.",
   dry_run_mode: "The pipeline is in dry-run (rehearsal) mode right now — simulation is paused.",
@@ -180,13 +181,15 @@ export default function SimulatePage() {
   if (!unlocked) {
     return (
       <section style={{ maxWidth: 640 }}>
-        <h2 style={{ fontSize: 20, marginBottom: 8 }}>Simulate a hire</h2>
-        <p style={{ color: "var(--muted)", fontSize: 14 }}>
-          This appends a real row to the shared Tracker sheet, exactly as if HR had marked
-          someone &ldquo;Hired,&rdquo; and pokes the real pipeline to send a real welcome email —
-          to a + alias of the author&rsquo;s own inbox, never a real hire. It&rsquo;s gated behind
-          the same access code as the assistant&rsquo;s free-form questions.
-        </p>
+        <h2 style={{ fontSize: 24, marginBottom: 8 }}>Simulate a hire</h2>
+        <Explain
+          title="Trigger the real pipeline yourself"
+          points={[
+            "This appends a genuine row to the shared sheet, exactly like HR marking someone Hired.",
+            "The pipeline validates, renders, archives, then sends — to a + alias of the author's own inbox.",
+            "Watch every stage below, or open the sheet to see your row land.",
+          ]}
+        />
         <UnlockForm onUnlocked={() => setUnlocked(true)} />
       </section>
     );
@@ -194,11 +197,17 @@ export default function SimulatePage() {
 
   return (
     <section style={{ maxWidth: 640 }}>
-      <h2 style={{ fontSize: 20, marginBottom: 8 }}>Simulate a hire</h2>
+      <h2 style={{ fontSize: 24, marginBottom: 8 }}>Simulate a hire</h2>
+      <Explain
+        title="Trigger the real pipeline yourself"
+        points={[
+          "This appends a genuine row to the shared sheet, exactly like HR marking someone Hired.",
+          "The pipeline validates, renders, archives, then sends — to a + alias of the author's own inbox.",
+          "Watch every stage below, or open the sheet to see your row land.",
+        ]}
+      />
       <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>
-        This appends a real row to the shared Google Sheet and the real pipeline sends a real
-        email — the recipient is always a + alias of the author&rsquo;s own inbox, never you or
-        anyone else.
+        The recipient is always a + alias of the author&rsquo;s own inbox, never you or anyone else.
         {wantCopy && " If you add your email below, you'll get a copy of that same email — once, no list, no follow-up."}
       </p>
 
@@ -222,16 +231,21 @@ export default function SimulatePage() {
             Send me the email too
           </label>
           {wantCopy && (
-            <input
-              type="email"
-              value={visitorEmail}
-              onChange={(e) => setVisitorEmail(e.target.value)}
-              placeholder="you@example.com"
-              style={{
-                padding: "8px 10px", borderRadius: "var(--radius)",
-                border: "1px solid var(--border)", fontSize: 14,
-              }}
-            />
+            <>
+              <input
+                type="email"
+                value={visitorEmail}
+                onChange={(e) => setVisitorEmail(e.target.value)}
+                placeholder="you@example.com"
+                style={{
+                  padding: "8px 10px", borderRadius: "var(--radius)",
+                  border: "1px solid var(--border)", fontSize: 14,
+                }}
+              />
+              <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>
+                Copies sometimes land in spam — check there first.
+              </p>
+            </>
           )}
           <button
             type="submit"

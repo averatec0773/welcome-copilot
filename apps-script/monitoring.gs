@@ -16,10 +16,30 @@ function pingHeartbeat() {
   }
 }
 
+// OpsInbox: a plain-text log of every email the pipeline sends itself,
+// visible on the shared sheet (and in the console) without needing inbox
+// access. Auto-creates on first use — lazily, so a fresh sheet copy still
+// works before any alert or digest has ever fired.
+function opsInbox_() {
+  let sheet = ss_().getSheetByName('OpsInbox');
+  if (!sheet) {
+    sheet = ss_().insertSheet('OpsInbox');
+    sheet.getRange(1, 1, 1, 4).setValues([['timestamp', 'type', 'subject', 'body']]).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
 function alertAdmin(subject, body) {
   const admin = props_().getProperty('ADMIN_EMAIL');
-  if (!admin) { Logger.log('ADMIN_EMAIL not set; alert dropped: ' + subject); return; }
-  MailApp.sendEmail(admin, '[welcome-copilot] ' + subject, body);
+  if (!admin) { Logger.log('ADMIN_EMAIL not set; alert dropped: ' + subject); }
+  else { MailApp.sendEmail(admin, '[welcome-copilot] ' + subject, body); }
+  try {
+    opsInbox_().appendRow([new Date(), 'ALERT', subject, body]);
+  } catch (e) {
+    // Inbox is a visibility aid, not a critical path — never block alerting.
+    Logger.log('OpsInbox append failed: ' + e);
+  }
 }
 
 function dailyDigest() {
@@ -54,6 +74,11 @@ function dailyDigest() {
     'No news from me tomorrow would itself be a signal — check the triggers.',
   ].join('\n');
   alertAdmin('Daily digest', body);
+  try {
+    opsInbox_().appendRow([new Date(), 'DIGEST', 'Daily digest', body]);
+  } catch (e) {
+    Logger.log('OpsInbox append failed: ' + e);
+  }
   try {
     log_('-', '-', 'DIGEST',
       'sent ' + count('SEND') + ' · demo ' + demoSends + ' · drafted ' + count('DRAFT') + ' · invalid ' + count('INVALID') +

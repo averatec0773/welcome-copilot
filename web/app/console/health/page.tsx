@@ -1,6 +1,7 @@
 "use client";
 import { usePoll } from "@/lib/usePoll";
 import type { LogEntry } from "@/lib/sheets";
+import { Explain } from "../Explain";
 
 type Health = {
   lastRunAt: string;
@@ -18,13 +19,53 @@ function freshness(lastRunAt: string): { label: string; color: string } {
   return { label: `${Math.round(mins / 60)} h ago`, color: "var(--error)" };
 }
 
+// Parses a RUN log line's counts string (see apps-script/main.gs log_ calls),
+// e.g. "3 eligible · 1 sent · 1 drafted · 1 duplicate · 0 invalid · 0 held",
+// into a plain sentence a lead can read without knowing the pipeline's internals.
+function runSentence(entry: LogEntry): string {
+  const time = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
+  const num = (label: string) => {
+    const m = new RegExp(`(\\d+)\\s+${label}`).exec(entry.result);
+    return m ? parseInt(m[1], 10) : 0;
+  };
+  const eligible = num("eligible");
+  const sent = num("sent");
+  const drafted = num("drafted");
+  const dup = num("duplicate");
+  const invalid = num("invalid");
+  const held = num("held");
+  const parts: string[] = [];
+  if (sent) parts.push(`sent ${sent}`);
+  if (drafted) parts.push(`drafted ${drafted}`);
+  if (dup) parts.push(`flagged ${dup} duplicate${dup === 1 ? "" : "s"}`);
+  if (invalid) parts.push(`${invalid} invalid`);
+  if (held) parts.push(`${held} held for quota`);
+  const outcome = parts.length ? parts.join(", ") : "nothing to do";
+  return `${time} — woke up, found ${eligible} eligible: ${outcome}`;
+}
+
+function digestSentence(entry: LogEntry): string {
+  const time = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
+  return `${time} — daily digest sent to the operator`;
+}
+
 export default function HealthPage() {
   const { data, error } = usePoll<Health>("/api/health");
   if (error) return <p className="card">Health unavailable: {error}</p>;
   if (!data) return <p>Loading health…</p>;
   const f = freshness(data.lastRunAt);
+  const runEntries = data.logs.filter((l) => l.action === "RUN" || l.action === "DIGEST");
   return (
     <section style={{ display: "grid", gap: 16 }}>
+      <Explain
+        title="How you'd know it broke — three independent defenses"
+        points={[
+          "Instant ALERT emails (see Operator Inbox) fire the moment something needs a human, right now.",
+          "The dead-man's-switch badge below watches for silence itself — it catches the failures that can't report themselves.",
+          "The daily digest is the human-level bottom line, once a day.",
+          "The run log below shows every time the pipeline actually woke up and what it did.",
+        ]}
+      />
       <div className="stat-grid">
         <div className="card">
           <div style={{ fontSize: 13, color: "var(--muted)" }}>Last pipeline run</div>
@@ -48,7 +89,7 @@ export default function HealthPage() {
           </div>
         </div>
         <div className="card">
-          <div style={{ fontSize: 13, color: "var(--muted)" }}>Dead man's switch</div>
+          <div style={{ fontSize: 13, color: "var(--muted)" }}>Dead man&rsquo;s switch</div>
           {data.badgeUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={data.badgeUrl} alt="healthchecks.io status" style={{ marginTop: 8 }} />
@@ -67,27 +108,48 @@ export default function HealthPage() {
           </div>
         </div>
       </div>
-      <div className="card" style={{ padding: 0, overflowX: "auto" }}>
-        <table className="data">
-          <thead>
-            <tr><th>Time</th><th>Run</th><th>Hire</th><th>Action</th><th>Result</th></tr>
-          </thead>
-          <tbody>
-            {data.logs.map((l, i) => (
-              <tr key={`${l.runId}-${l.hireId}-${i}`}>
-                <td>{l.timestamp}</td>
-                <td style={{ fontFamily: "monospace", fontSize: 12 }}>{l.runId}</td>
-                <td>{l.hireId}</td>
-                <td><span className={`badge ${l.action === "SEND" ? "SENT" : l.action === "DRAFT" ? "DRAFTED" : l.action === "DUPLICATE" ? "DUPLICATE" : ["ERROR", "INVALID"].includes(l.action) ? "ERROR" : "neutral"}`}>{l.action}</span></td>
-                <td style={{ fontSize: 13 }}>{l.result}</td>
-              </tr>
+
+      <div>
+        <h2 style={{ fontSize: 24, margin: "0 0 10px" }}>Recent pipeline runs</h2>
+        {runEntries.length === 0 ? (
+          <p className="card" style={{ color: "var(--muted)", fontSize: 13 }}>
+            No runs logged yet — the pipeline fires every 5 minutes once the trigger is set up.
+          </p>
+        ) : (
+          <div style={{ display: "grid", gap: 8 }}>
+            {runEntries.map((l, i) => (
+              <div key={`${l.runId}-${i}`} className="card" style={{ padding: "10px 14px", fontSize: 14 }}>
+                {l.action === "DIGEST" ? digestSentence(l) : runSentence(l)}
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        )}
       </div>
-      <p style={{ fontSize: 12, color: "var(--muted)" }}>
-        Validation messages are redacted — the log carries hire_ids, not names or addresses.
-      </p>
+
+      <div>
+        <h2 style={{ fontSize: 24, margin: "0 0 10px" }}>Raw log (last 20)</h2>
+        <div className="card" style={{ padding: 0, overflowX: "auto" }}>
+          <table className="data">
+            <thead>
+              <tr><th>Time</th><th>Run</th><th>Hire</th><th>Action</th><th>Result</th></tr>
+            </thead>
+            <tbody>
+              {data.logs.map((l, i) => (
+                <tr key={`${l.runId}-${l.hireId}-${i}`}>
+                  <td>{l.timestamp}</td>
+                  <td style={{ fontFamily: "monospace", fontSize: 12 }}>{l.runId}</td>
+                  <td>{l.hireId}</td>
+                  <td><span className={`badge ${l.action === "SEND" ? "SENT" : l.action === "DRAFT" ? "DRAFTED" : l.action === "DUPLICATE" ? "DUPLICATE" : ["ERROR", "INVALID"].includes(l.action) ? "ERROR" : "neutral"}`}>{l.action}</span></td>
+                  <td style={{ fontSize: 13 }}>{l.result}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p style={{ fontSize: 12, color: "var(--muted)" }}>
+          Validation messages are redacted — the log carries hire_ids, not names or addresses.
+        </p>
+      </div>
     </section>
   );
 }

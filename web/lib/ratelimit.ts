@@ -20,7 +20,8 @@ export function getLimiters() {
       perIp: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(8, "1 m"), prefix: "ask:ip" }),
       global: new Ratelimit({ redis, limiter: Ratelimit.fixedWindow(300, "1 d"), prefix: "ask:global" }),
       unlockGlobal: new Ratelimit({ redis, limiter: Ratelimit.fixedWindow(1000, "1 d"), prefix: "unlock:global" }),
-      simPerIp: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(1, "1 h"), prefix: "sim:ip" }),
+      // Demo-friendly retry headroom; the global cap still bounds total volume.
+      simPerIp: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, "1 h"), prefix: "sim:ip" }),
       simGlobal: new Ratelimit({ redis, limiter: Ratelimit.fixedWindow(1, "10 m"), prefix: "sim:global" }),
     };
   }

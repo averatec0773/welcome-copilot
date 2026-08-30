@@ -15,6 +15,8 @@ export type OutboxEmail = {
 
 export type LogEntry = { timestamp: string; runId: string; hireId: string; action: string; result: string };
 
+export type OpsInboxMessage = { timestamp: string; type: string; subject: string; body: string };
+
 export function credentials(): object {
   const b64 = process.env.GOOGLE_SA_KEY_B64;
   if (b64) return JSON.parse(Buffer.from(b64, "base64").toString("utf8"));
@@ -104,4 +106,25 @@ export function mapLogRows(values: string[][]): LogEntry[] {
       timestamp: cell(r, 0), runId: cell(r, 1), hireId: cell(r, 2),
       action: cell(r, 3), result: cell(r, 4),
     }));
+}
+
+export function mapOpsInboxRows(values: string[][]): OpsInboxMessage[] {
+  const rows = values
+    .slice(1)
+    .filter((r) => cell(r, 0))
+    .map((r) => ({
+      timestamp: cell(r, 0), type: cell(r, 1), subject: cell(r, 2), body: cell(r, 3),
+    }));
+  // Newest first by parsed timestamp, same convention as mapOutboxRows.
+  return rows
+    .map((row, i) => ({ row, i }))
+    .sort((a, b) => {
+      const ta = new Date(a.row.timestamp).getTime();
+      const tb = new Date(b.row.timestamp).getTime();
+      const na = Number.isNaN(ta) ? 0 : ta;
+      const nb = Number.isNaN(tb) ? 0 : tb;
+      if (nb !== na) return nb - na;
+      return b.i - a.i;
+    })
+    .map(({ row }) => row);
 }

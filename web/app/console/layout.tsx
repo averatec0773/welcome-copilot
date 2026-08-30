@@ -5,11 +5,11 @@ import { useEffect, useState } from "react";
 
 const TABS = [
   { href: "/console/tracker", label: "Tracker" },
+  { href: "/console/simulate", label: "Simulate" },
   { href: "/console/outbox", label: "Outbox" },
   { href: "/console/health", label: "Health" },
+  { href: "/console/opsinbox", label: "Operator Inbox" },
   { href: "/console/assistant", label: "Assistant" },
-  { href: "/console/simulate", label: "Simulate" },
-  { href: "/console/utilization", label: "Utilization" },
 ];
 
 const SHEET_URL =
@@ -135,7 +135,7 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
               padding: "10px 16px",
               textDecoration: "none",
               fontWeight: 600,
-              fontSize: 14,
+              fontSize: 15,
               color: pathname.startsWith(t.href) ? "var(--accent)" : "var(--muted)",
               borderBottom: pathname.startsWith(t.href)
                 ? "2px solid var(--accent)"

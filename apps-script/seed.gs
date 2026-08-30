@@ -51,6 +51,29 @@ function seedDuplicateRow() {
   Logger.log('seedDuplicateRow: appended duplicate Sarah Kim row.');
 }
 
+// Seeds two realistic historical entries into OpsInbox so the Operator
+// Inbox tab isn't empty before the first real alert or 8am digest. Built
+// from the pipeline's actual demo data: the invalid Daniel Reyes row
+// (H-0005, malformed email) and the duplicate Sarah Kim row seeded by
+// seedDuplicateRow() (H-0011, same email as H-0003).
+function seedOpsInbox() {
+  const sheet = opsInbox_();
+  if (sheet.getLastRow() > 1) {
+    Logger.log('seedOpsInbox: OpsInbox already has entries; skipping.');
+    return;
+  }
+  const hoursAgo = function (h) { return new Date(Date.now() - h * 3600 * 1000); };
+  sheet.appendRow([
+    hoursAgo(5), 'ALERT', 'Invalid hire row H-0005',
+    'invalid email format\nFix the row; it will send on the next run.',
+  ]);
+  sheet.appendRow([
+    hoursAgo(3), 'ALERT', 'Duplicate hire row H-0011',
+    'Email already claimed by H-0003. Fix the row; it will send on the next run once corrected.',
+  ]);
+  Logger.log('seedOpsInbox: appended 2 historical OpsInbox row(s).');
+}
+
 // Backfills the Log's redaction: any earlier run that logged an address
 // (before validation.gs stopped interpolating it) gets scrubbed in place.
 function redactLogHistory() {
