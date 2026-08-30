@@ -41,7 +41,7 @@ function StatusLegend() {
     <div
       style={{
         display: "flex", flexWrap: "wrap", alignItems: "baseline",
-        columnGap: 14, rowGap: 6, margin: "12px 2px 16px",
+        columnGap: 14, rowGap: 6, margin: "0 2px 14px",
       }}
     >
       {LEGEND.map((l) => (
@@ -275,6 +275,7 @@ export default function TrackerPage() {
         column, and the Welcome email column is where it writes its result back. Click a row
         for the full candidate story.
       </p>
+      <StatusLegend />
       <div className="card" style={{ padding: 0, overflowX: "auto" }}>
         <table className="data">
           <thead>
@@ -333,7 +334,6 @@ export default function TrackerPage() {
           </tbody>
         </table>
       </div>
-      <StatusLegend />
       <LifecycleStrip />
         </>
       )}
