@@ -212,6 +212,10 @@ export default function Home() {
         Built with Google Apps Script, Next.js, Claude, and a healthy fear of silent failures.{" "}
         <a href="https://github.com/averatec0773/welcome-copilot" target="_blank" rel="noreferrer">
           View the source on GitHub
+        </a>{" "}
+        ·{" "}
+        <a href="/walkthrough.pdf" target="_blank" rel="noreferrer">
+          Read the walkthrough (PDF)
         </a>
       </footer>
     </main>
