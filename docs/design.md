@@ -11,13 +11,13 @@ scans the whole Tracker for eligible rows.
 **Alternative:** an `onEdit` trigger that fires the moment a row's Status
 cell changes to `Hired`.
 **Why:** the sheet gets sorted, filtered, and bulk-edited by several people
-at once — a sort or a paste-special fires `onEdit` in ways that don't map
+at once. A sort or a paste-special fires `onEdit` in ways that don't map
 cleanly to "this row just became Hired," and an edit trigger can't
 distinguish a human typing `Hired` from a script or an import doing the
 same. A dumb poll that re-derives "what's eligible right now" from the full
 sheet state is simpler to reason about and immune to edit-event edge cases.
 **Revisit when:** near-instant delivery becomes a real requirement (5
-minutes stops being acceptable) — I'd add a narrowly-scoped `onEdit` that
+minutes stops being acceptable). I'd add a narrowly-scoped `onEdit` that
 only ever *shortens* the wait for a single obviously-valid change, with the
 poll kept as the source of truth underneath it.
 
@@ -43,13 +43,16 @@ send-and-record primitive, which Apps Script + Gmail doesn't.
 
 **Choice:** the pipeline treats anything other than `FALSE` (matched
 without regard to case) in the `dry_run` config cell as "draft only." A
-blank cell, a typo, `Config` tab renamed, the whole tab missing — all
-draft, never send.
+blank cell or a typo in that cell means draft, never send. (If the
+`Config` tab itself is renamed or deleted, `getConfig()` throws instead:
+the run aborts before touching any row, the admin gets alerted, and
+nothing sends *or* drafts that cycle — a different failure mode, but still
+safe, since it's loud rather than silent.)
 **Alternative:** default to live sending unless explicitly told not to.
 **Why:** the cost of an unwanted draft is zero; the cost of an unwanted
 live email to a real person is not undoable. When the safe and unsafe
 defaults aren't symmetric, the code should fail toward the cheap mistake.
-**Revisit when:** it wouldn't — this is a one-way door I'd keep even at
+**Revisit when:** it wouldn't: this is a one-way door I'd keep even at
 scale.
 
 ## Rows keyed by `hire_id`, not row position
@@ -58,7 +61,7 @@ scale.
 re-locates the row by `hire_id` immediately before writing, and aborts that
 write if the id can't be found.
 **Alternative:** trust the row index captured at the start of the run.
-**Why:** the sheet is a live, human-edited surface — someone can sort it,
+**Why:** the sheet is a live, human-edited surface: someone can sort it,
 delete a row above, or insert one, all mid-run. A captured row index is
 stale the instant that happens; writing to it would silently corrupt a
 different hire's row.
@@ -71,7 +74,7 @@ than needing to be revisited.
 **Choice:** for a given email address, the row with the numerically lowest
 `hire_id` is the "owner." Any other row with that address is marked
 `DUPLICATE`, and once *any* row with that address has actually sent, every
-other row with that address is permanently blocked — even if the sheet
+other row with that address is permanently blocked, even if the sheet
 gets re-sorted afterward.
 **Alternative:** "first row in sheet order wins," which is what an earlier
 version of this logic did.
@@ -132,8 +135,8 @@ company SSO wouldn't need an invite code at all, just auth.
 
 ## PII, not PHI
 
-Everything this system touches — name, email, license type, state, start
-date, manager, an onboarding handbook — is ordinary hiring PII. Nothing
+Everything this system touches (name, email, license type, state, start
+date, manager, an onboarding handbook) is ordinary hiring PII. Nothing
 here is Protected Health Information, and nothing here is built to touch
 PHI: the handbook assistant's own system prompt refuses questions about a
 specific client, and the handbook itself (see `hipaa-basics.md`) tells new
@@ -146,20 +149,20 @@ keep secrets out of code and out of the spreadsheet (Script Properties, not
 cells or source), and minimize what any given surface can see (the console
 reads the sheet through a read-only service account; the assistant is
 scoped to policy documents and explicitly refuses anything that smells like
-client data). Those are the same habits a PHI-adjacent system needs — this
+client data). Those are the same habits a PHI-adjacent system needs. This
 demo just doesn't need to earn that trust to prove it understands the
 shape of the problem.
 
 ## Consciously skipped
 
-Left out on purpose, not by oversight — each because the cost didn't clear
+Left out on purpose, not by oversight: each because the cost didn't clear
 the bar for a demo of this scope:
 
 - **A pulse-survey / 30-60-90-day check-in follow-up** — a natural next
   automation once the welcome email lands, and the one I'd build next if
   this went further; skipped here to keep the surface area to what could
   be built and verified end-to-end in the time available.
-- **Per-row isolation in the send loop** — one row throwing (e.g. a
+- **Per-row isolation in the send loop:** one row throwing (e.g. a
   transient Gmail error) aborts the rest of that run's batch rather than
   being caught and skipped individually; acceptable at low volume since the
   next 5-minute run retries everything not yet sent, but a real
@@ -168,11 +171,11 @@ the bar for a demo of this scope:
   hand-typed with the same id; the duplicate-email guard catches the
   practical case (same person, same address) but not a deliberately or
   accidentally duplicated id.
-- **Real-time `onEdit` delivery** — see the polling-vs-onEdit decision
+- **Real-time `onEdit` delivery:** see the polling-vs-onEdit decision
   above.
 - **Multi-language email templates** — the template is intentionally
   English-only regardless of spreadsheet locale, matching this demo's
   single-market scope.
 - **An admin UI for editing the prebaked assistant answers or the email
-  template** — both are edited by changing source and redeploying; fine at
+  template:** both are edited by changing source and redeploying; fine at
   one maintainer, not fine past that.

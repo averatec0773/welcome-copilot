@@ -1,6 +1,6 @@
 # Tracker v2: what happens after the spreadsheet
 
-The Sheet is the right choice today — see `sketch.md` for why. This is
+The Sheet is the right choice today. See `sketch.md` for why. This is
 where it stops being the right choice, and how I'd move off it without a
 cutover weekend.
 
@@ -19,7 +19,7 @@ system for infrastructure that solves problems this scale doesn't have yet.
   cells, but long before that the pipeline's pattern of reading the *entire*
   Tracker on every 5-minute run gets slow and eventually throttled by
   Sheets API quota. With 12 columns, that's roughly 800,000 rows before
-  hitting the cell ceiling — but the API-quota and latency wall arrives
+  hitting the cell ceiling, but the API-quota and latency wall arrives
   much sooner, realistically once the sheet holds a few thousand active
   rows and years of history sitting alongside them.
 - **No referential integrity.** Nothing stops two rows from sharing a
@@ -28,7 +28,7 @@ system for infrastructure that solves problems this scale doesn't have yet.
   duplicate-email guard is a workaround for exactly this gap, not a fix
   for it.
 - **No real history.** The Log tab is an append-only audit trail, but the
-  Tracker itself only holds current state — there's no "what did this row
+  Tracker itself only holds current state: there's no "what did this row
   look like before HR edited it," no soft-deletes, no schema versioning.
   Answering "how many hires needed a manual fix last quarter" means reading
   the Log by hand.
@@ -68,7 +68,7 @@ until the new system has earned trust with real traffic.
    the source of truth, with the mirror still running underneath. This is
    where referential integrity rules (unique `hire_id`, foreign-keyed
    manager records) get turned on in the new store and any violations
-   surfaced — a cheap way to find out how dirty the existing data actually
+   surfaced, a cheap way to find out how dirty the existing data actually
    is before it becomes load-bearing.
 3. **Cutover.** Once dual-read has run clean for a stretch (no sync drift,
    no violated constraints, latency acceptable), flip `runPipeline` to
@@ -76,6 +76,6 @@ until the new system has earned trust with real traffic.
    a read-only mirror for HR's benefit during the transition, then retired
    once nobody's looked at it in a month.
 
-Each stage is independently reversible — if the mirror falls out of sync or
+Each stage is independently reversible: if the mirror falls out of sync or
 the new store misbehaves, the fallback at every step is "keep using the
 Sheet," not "roll back a migration."

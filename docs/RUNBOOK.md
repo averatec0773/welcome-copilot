@@ -1,6 +1,6 @@
 # Runbook
 
-For whoever is on call for the welcome-email pipeline — no code, no script
+For whoever is on call for the welcome-email pipeline, no code, no script
 editor, just the Google Sheet and the Ops Console. Every scenario below is
 5 steps or fewer.
 
@@ -12,28 +12,29 @@ editor, just the Google Sheet and the Ops Console. Every scenario below is
 | Live status view | [welcome-copilot.vercel.app](https://welcome-copilot.vercel.app), the **Tracker**, **Outbox**, and **Health** tabs of the Ops Console |
 | The switch between test mode and real sending | The **Config** tab, the **dry_run** row (value `TRUE` or `FALSE`) |
 | Who gets alert emails | Set up by the engineer, not editable from the Sheet |
-| The pipeline's own status page | The Health page's **Dead man's switch** tile (links to the healthchecks.io badge) |
+| The pipeline's own status page | The Health page's **Dead man's switch** tile, which shows the healthchecks.io status badge image itself |
 | A record of every email ever sent or drafted | The **Outbox** tab (and the Outbox console tab, which shows the actual email) |
 | A row-by-row history of every pipeline run | The **Log** tab (and the Health console tab, last 20 rows) |
 
 ## Scenario: a new hire says their welcome email didn't arrive
 
 1. Open the Ops Console's **Tracker** tab and find their row by name.
-2. Check the **Welcome email** column. `SENT` means it was sent — check
+2. Check the **Welcome email** column. `SENT` means it was sent. Check
    spam with the new hire first.
 3. If it says `DRAFTED`, the pipeline is in test mode — see "Switch
    dry-run to live" below.
 4. If it says `INVALID` or `DUPLICATE`, see those scenarios below.
 5. If the column is empty and their **Status** column isn't `Hired` yet,
-   that's the reason — the pipeline only acts on rows marked `Hired`.
+   that's the reason: the pipeline only acts on rows marked `Hired`.
 
 ## Scenario: a row shows INVALID
 
 1. Open the **Tracker** tab of the shared Sheet and find the row.
-2. Read the **error_detail** column — it names exactly what's wrong (for
-   example, "missing or invalid start_date").
+2. Read the **error_detail** column (labeled **Detail** in the Ops
+   Console's Tracker tab). It names exactly what's wrong, for example
+   "missing or invalid start_date".
 3. Fix that field directly in the Sheet.
-4. Do nothing else — the pipeline re-checks every row automatically every 5
+4. Do nothing else. The pipeline re-checks every row automatically every 5
    minutes and clears the status once it's valid.
 5. If it's still `INVALID` after 10 minutes, double-check the fix matches
    the exact complaint (e.g. the start date must be a real calendar date,
@@ -42,46 +43,62 @@ editor, just the Google Sheet and the Ops Console. Every scenario below is
 ## Scenario: a row shows DUPLICATE
 
 1. This means another row in the Tracker uses the exact same email address.
-2. Look at the **error_detail** column — it names the `hire_id` that owns
-   the email (normally the one with the earlier hire number).
+2. Look at the **error_detail** column in the Sheet (**Detail** in the Ops
+   Console's Tracker tab). It names the `hire_id` that owns the email
+   (normally the one with the earlier hire number).
 3. If this is genuinely two different people who happen to share an email,
    fix the email address on the newer row.
 4. If it's the same person entered twice, delete the extra row.
-5. No further action needed — the pipeline re-checks automatically.
+5. No further action needed. The pipeline re-checks automatically.
 
 ## Scenario: a row is stuck on SENDING
 
 This means the pipeline started sending that email and something
 interrupted it before it could confirm the send. It will **not**
-auto-retry — it needs a human look, because sending it again could
-double-email someone.
+auto-retry, it needs a human look, because sending it again could
+double-email someone. Do not trust the Outbox for this: a row is archived
+there the moment the email is *rendered*, before it's actually sent, so an
+Outbox entry alone doesn't prove the send went through.
 
-1. Open the **Outbox** tab (Sheet or console) and find the most recent row
-   for that `hire_id`.
-2. If its **mode** column says `LIVE` and the timestamp matches when the
-   row got stuck, the email almost certainly went out — ask the new hire to
-   check, including spam.
-3. If you confirm it was sent, open the Sheet's **Tracker** tab and clear
-   that row's `welcome_status` cell, then type `SENT` into it directly.
-4. If you confirm it was **not** sent (no matching Outbox row, or the new
-   hire never received anything), clear the `welcome_status` cell entirely
-   — the pipeline will pick the row up and send it on the next run.
-5. Still unsure? Leave it and message the engineer — this column is
-   protected precisely so an accidental double-send needs a deliberate
-   human decision, not a script.
+1. Open the Sheet's **Log** tab (or the Health console tab, which shows
+   the last 20 rows) and look for a `SEND` entry with that hire's
+   `hire_id`. That row is written only after Gmail confirms the send, so
+   it's the one place that proves the email actually went out.
+2. Found a matching `SEND` row? The email did go out. Open the Sheet's
+   **Tracker** tab and type today's date into that row's
+   `welcome_sent_at` cell first (it's protected with a warning only, so
+   click through it), then set `welcome_status` to `SENT`. Do
+   `welcome_sent_at` first: that's the cell the pipeline actually checks
+   to know a row is done, and doing it first is what stops a re-send even
+   if a run happens to fire mid-edit.
+3. No matching `SEND` row, and the new hire confirms they got nothing?
+   The email did not go out. Clear the `welcome_status` cell entirely and
+   leave `welcome_sent_at` blank — the pipeline will pick the row up and
+   send it on the next run.
+4. Still unsure either way? Leave both cells as they are and message the
+   engineer. A wrong guess here risks a genuine double-send, so this stays
+   a deliberate human call, not a default action.
 
-## Scenario: the Health page's badge is red
+## Scenario: the Health page shows red
+
+There are two separate red signals on this page — check both.
 
 1. Open the Ops Console's **Health** tab.
-2. Check the **Last pipeline run** tile — if it says anything other than
-   "a few minutes ago," the pipeline has stopped running.
-3. Open the shared Sheet, then Extensions → Apps Script, then Triggers
-   (clock icon) in the left sidebar.
-4. Confirm two triggers exist: `runPipeline` (every 5 minutes) and
-   `dailyDigest` (daily). If either is missing, message the engineer — the
-   fix is a one-click "reinstall" run in the editor, not a Sheet edit.
-5. If both triggers are present and it's still red, message the engineer —
-   this usually means an expired Google authorization, not a Sheet problem.
+2. Look at the **Last pipeline run** tile. It reads a green "N min ago"
+   under 15 minutes, an amber "N min ago" under 60 minutes, or a red
+   "N h ago" (or "never ran") beyond that. Red here means the pipeline
+   hasn't completed a run recently.
+3. Separately, the **Dead man's switch** tile shows the healthchecks.io
+   status badge image itself. If that image reads down/red, healthchecks.io
+   hasn't received a heartbeat ping within its check-in window.
+4. Either red signal points to the same fix: open the shared Sheet, then
+   Extensions → Apps Script, then Triggers (clock icon) in the left
+   sidebar, and confirm two triggers exist: `runPipeline` (every 5
+   minutes) and `dailyDigest` (daily). If either is missing, message the
+   engineer: the fix is a one-click "reinstall" run in the editor, not a
+   Sheet edit.
+5. Both triggers present and it's still red? Message the engineer — this
+   usually means an expired Google authorization, not a Sheet problem.
 
 ## Scenario: switch between test mode (dry-run) and sending real email
 
@@ -101,9 +118,12 @@ double-email someone.
 2. To stop the pipeline running at all, open Extensions → Apps Script →
    Triggers (clock icon) and delete the `runPipeline` trigger.
 3. Deleting that trigger will turn the Health page's badge red within
-   about 15 minutes — that's expected, not a bug, while paused.
-4. To resume, re-run `installTriggers` from the Apps Script editor (ask the
-   engineer if you don't have editor access), or just set `dry_run` back.
+   about 15 minutes. That's expected, not a bug, while paused.
+4. To resume: if you only set `dry_run` to `TRUE` (step 1) and never
+   touched the triggers, just set it back to `FALSE`. If you also deleted
+   the `runPipeline` trigger (step 2), setting `dry_run` back is not
+   enough by itself — re-run `installTriggers` from the Apps Script editor
+   too (ask the engineer if you don't have editor access).
 5. Nothing is lost while paused — rows sit as they are and get picked up
    normally on the next run once triggers are restored.
 
@@ -111,7 +131,7 @@ double-email someone.
 
 1. Open the **Health** tab of the Ops Console.
 2. **Last pipeline run** should read minutes, not hours — if it's red,
-   follow the "badge is red" scenario above.
+   follow the "Health page shows red" scenario above.
 3. **Mode** should read what you expect — `LIVE` in normal operation,
    `DRY-RUN` only if you meant to pause sending.
 4. Skim the last handful of rows in the log table for repeated `ERROR` or
