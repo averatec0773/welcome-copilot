@@ -217,6 +217,7 @@ export default function TrackerPage() {
   if (!data) return <p>Loading tracker…</p>;
 
   function openSimulate() {
+    if (unlocked === null) return; // access check still in flight
     // Locked visitors never see the modal — send them to the one place a
     // code is entered instead (header chip opens + flashes).
     if (!unlocked) {
@@ -287,7 +288,7 @@ export default function TrackerPage() {
                       )}
                     </td>
                     <td><span className="badge neutral">{h.status}</span></td>
-                    <td>{h.startDate}</td>
+                    <td>{fmtDate(h.startDate)}</td>
                     <td className="hide-sm">{h.license}</td>
                     <td className="hide-sm">{h.state}</td>
                     <td className="hide-sm" style={{ color: "var(--muted)" }}>{h.email}</td>
