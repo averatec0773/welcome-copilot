@@ -7,6 +7,7 @@ export type Hire = {
   hireId: string; name: string; email: string; license: string; state: string;
   startDate: string; manager: string; status: string; welcomeSentAt: string;
   welcomeStatus: string; errorDetail: string; isDemo: boolean;
+  appliedOn: string; interviewedOn: string; offerOn: string; notes: string;
 };
 
 export type OutboxEmail = {
@@ -45,7 +46,7 @@ export async function appendTrackerRow(values: (string | boolean)[]): Promise<nu
   const sheets = google.sheets({ version: "v4", auth });
   const res = await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: "Tracker!A:L",
+    range: "Tracker!A:P",
     valueInputOption: "USER_ENTERED",
     requestBody: { values: [values] },
   });
@@ -66,6 +67,7 @@ export function mapTrackerRows(values: string[][]): Hire[] {
       state: cell(r, 4), startDate: cell(r, 5), manager: cell(r, 6), status: cell(r, 7),
       welcomeSentAt: cell(r, 8), welcomeStatus: cell(r, 9), errorDetail: cell(r, 10),
       isDemo: cell(r, 11).toUpperCase() === "TRUE",
+      appliedOn: cell(r, 12), interviewedOn: cell(r, 13), offerOn: cell(r, 14), notes: cell(r, 15),
     }));
 }
 

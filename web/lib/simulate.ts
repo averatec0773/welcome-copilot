@@ -45,20 +45,32 @@ function formatStartDate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+// Same ISO formatting, offset from today by `days` (negative = past).
+function isoDateOffset(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return formatStartDate(d);
+}
+
 export type SimulateRow = { row: (string | boolean)[]; name: string; alias: string };
 
-// Builds the 12-column Tracker row (A..L) for a simulated hire. hire_id (A),
+// Builds the 16-column Tracker row (A..P) for a simulated hire. hire_id (A),
 // welcome_sent_at (I), welcome_status (J), and error_detail (K) start blank —
-// the real pipeline owns those from here on.
+// the real pipeline owns those from here on. name (B) is just the sanitized
+// first name — no "Demo " prefix — so the welcome email (which greets the
+// row's first word) greets the chosen name correctly; demo rows stay
+// identifiable via is_demo (L) / the tracker's 🧪 marker instead.
 export function buildSimulateRow(firstNameInput: string | undefined | null): SimulateRow {
   const firstName = sanitizeFirstName(firstNameInput);
   const alias = buildAliasEmail(randomAliasHex());
-  const name = `Demo ${firstName}`;
+  const name = firstName;
   const start = new Date();
   start.setDate(start.getDate() + 14);
   const row: (string | boolean)[] = [
     "", name, alias, pick(LICENSES), pick(STATES), formatStartDate(start),
     MANAGER, "Hired", "", "", "", true,
+    isoDateOffset(-30), isoDateOffset(-14), isoDateOffset(-7),
+    "Created by a demo visitor via Simulate",
   ];
   return { row, name, alias };
 }

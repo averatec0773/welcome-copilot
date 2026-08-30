@@ -6,10 +6,12 @@ import { Explain } from "../Explain";
 
 export default function OpsInboxPage() {
   const { data, error } = usePoll<{ messages: OpsInboxMessage[] }>("/api/opsinbox");
-  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
   if (error) return <p className="card">Operator Inbox unavailable: {error}</p>;
   if (!data) return <p>Loading operator inbox…</p>;
   const messages = data.messages;
+  const keyOf = (m: OpsInboxMessage) => `${m.timestamp}-${m.subject}`;
+  const current = messages.find((m) => keyOf(m) === selectedKey) ?? messages[0];
   return (
     <section>
       <Explain
@@ -24,37 +26,41 @@ export default function OpsInboxPage() {
           No operator mail yet — the first daily digest lands at 8:00.
         </p>
       ) : (
-        <div style={{ display: "grid", gap: 10 }}>
-          {messages.map((m, i) => {
-            const key = `${m.timestamp}-${i}`;
-            const open = openKey === key;
-            return (
-              <div key={key} className="card" style={{ padding: 0 }}>
-                <button
-                  onClick={() => setOpenKey(open ? null : key)}
-                  style={{
-                    display: "flex", width: "100%", alignItems: "center", gap: 10,
-                    textAlign: "left", border: "none", background: "transparent",
-                    cursor: "pointer", padding: "12px 16px",
-                  }}
-                >
+        <div className="outbox-grid">
+          <div className="card" style={{ padding: 0, maxHeight: 560, overflowY: "auto" }}>
+            {messages.map((m) => (
+              <button
+                key={keyOf(m)}
+                onClick={() => setSelectedKey(keyOf(m))}
+                style={{
+                  display: "block", width: "100%", textAlign: "left", border: "none",
+                  borderBottom: "1px solid var(--border)", cursor: "pointer", padding: "12px 14px",
+                  background: current && keyOf(m) === keyOf(current) ? "var(--accent-soft)" : "transparent",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  <strong style={{ fontSize: 13 }}>{m.subject}</strong>
                   <span className={`badge ${m.type === "ALERT" ? "DRAFTED" : "neutral"}`}>{m.type}</span>
-                  <strong style={{ fontSize: 14 }}>{m.subject}</strong>
-                  <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--muted)" }}>{m.timestamp}</span>
-                </button>
-                {open && (
-                  <pre
-                    style={{
-                      margin: 0, padding: "0 16px 14px", fontSize: 13, fontFamily: "inherit",
-                      whiteSpace: "pre-wrap", color: "var(--ink)",
-                    }}
-                  >
-                    {m.body}
-                  </pre>
-                )}
-              </div>
-            );
-          })}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{m.timestamp}</div>
+              </button>
+            ))}
+          </div>
+          <div className="card" style={{ padding: 0, minHeight: 560 }}>
+            {current ? (
+              <>
+                <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", fontSize: 13 }}>
+                  <strong>{current.subject}</strong>
+                  <span style={{ color: "var(--muted)" }}> · {current.timestamp}</span>
+                </div>
+                <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: 14, padding: 16, margin: 0 }}>
+                  {current.body}
+                </pre>
+              </>
+            ) : (
+              <p style={{ padding: 16 }}>Select a message.</p>
+            )}
+          </div>
         </div>
       )}
     </section>

@@ -9,7 +9,7 @@ editor, just the Google Sheet and the Ops Console. Every scenario below is
 | Thing | Where |
 |---|---|
 | The pipeline's data | The shared Google Sheet, tabs **Tracker**, **Config**, **Log**, **Outbox** |
-| Live status view | [welcome-copilot.vercel.app](https://welcome-copilot.vercel.app), the **Tracker**, **Outbox**, **Health**, **Assistant**, **Simulate**, and **Utilization** tabs of the Ops Console |
+| Live status view | [welcome-copilot.vercel.app](https://welcome-copilot.vercel.app), the **Tracker**, **Outbox**, **Operator Inbox**, **Health**, **Assistant**, and **Utilization** tabs of the Ops Console (Simulate is a modal opened from the Tracker tab's "▶ Simulate a hire" button, not its own tab) |
 | The switch between test mode and real sending | The **Config** tab, the **dry_run** row (value `TRUE` or `FALSE`) |
 | Who gets alert emails | Set up by the engineer, not editable from the Sheet |
 | The pipeline's own status page | The Health page's **Dead man's switch** tile, which shows the healthchecks.io status badge image itself |
@@ -51,11 +51,11 @@ editor, just the Google Sheet and the Ops Console. Every scenario below is
 4. If it's the same person entered twice, delete the extra row.
 5. No further action needed. The pipeline re-checks automatically.
 
-## Scenario: a row named "Demo <Name>" appeared that nobody added
+## Scenario: a row marked 🧪 appeared that nobody added
 
-1. This is expected: a visitor used the Ops Console's gated **Simulate**
-   tab (same access code as the assistant's free-form questions) to try
-   the pipeline end-to-end.
+1. This is expected: a visitor used the Ops Console's gated **Simulate a
+   hire** modal (opened from the Tracker tab, same access code as the
+   assistant's free-form questions) to try the pipeline end-to-end.
 2. The row is real but harmless: it always sends to one of the author's
    own + alias addresses, never a real hire or anyone else.
 3. It behaves exactly like a real hire in every other way: validated,
@@ -63,9 +63,10 @@ editor, just the Google Sheet and the Ops Console. Every scenario below is
    `SENDING` or any other normal status.
 4. No action needed. Any demo row that actually sent is auto-archived
    (deleted) 7 days after its `welcome_sent_at`.
-5. Want it gone sooner? Delete the row yourself, any time. Demo rows are
-   marked `TRUE` in the Tracker's last column (`is_demo`), if that helps
-   you spot them.
+5. Want it gone sooner? Delete the row yourself, any time. Demo rows show
+   a 🧪 next to their `hire_id` in the Tracker console tab, and are
+   marked `TRUE` in the Sheet's `is_demo` column — never by anything in
+   the name.
 
 ## Scenario: a row is stuck on SENDING
 

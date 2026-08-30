@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { mapTrackerRows, mapOutboxRows, mapConfig } from "@/lib/sheets";
 
 const TRACKER = [
-  ["hire_id", "name", "email", "license", "state", "start_date", "manager", "status", "welcome_sent_at", "welcome_status", "error_detail", "is_demo"],
-  ["H-0001", "Maria Chen", "a+maria@gmail.com", "LMFT", "CA", "8/3/2026", "Dana", "Onboarded", "7/20/2026", "SENT", "", "FALSE"],
-  ["H-0005", "Daniel Reyes", "daniel.reyes@", "PsyD", "FL", "9/14/2026", "Dana", "Hired", "", "INVALID", "invalid email format", "FALSE"],
+  ["hire_id", "name", "email", "license", "state", "start_date", "manager", "status", "welcome_sent_at", "welcome_status", "error_detail", "is_demo", "applied_on", "interviewed_on", "offer_on", "notes"],
+  ["H-0001", "Maria Chen", "a+maria@gmail.com", "LMFT", "CA", "8/3/2026", "Dana", "Onboarded", "7/20/2026", "SENT", "", "FALSE", "6/15/2026", "6/29/2026", "7/13/2026", "Referred by a current clinician"],
+  ["H-0005", "Daniel Reyes", "daniel.reyes@", "PsyD", "FL", "9/14/2026", "Dana", "Hired", "", "INVALID", "invalid email format", "FALSE", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", "", "", ""],
   ["H-0011", "Short Row"],
 ];
@@ -13,10 +13,14 @@ describe("mapTrackerRows", () => {
   it("maps rows, skips blanks, pads short rows", () => {
     const hires = mapTrackerRows(TRACKER);
     expect(hires).toHaveLength(3);
-    expect(hires[0]).toMatchObject({ hireId: "H-0001", name: "Maria Chen", welcomeStatus: "SENT", isDemo: false });
+    expect(hires[0]).toMatchObject({
+      hireId: "H-0001", name: "Maria Chen", welcomeStatus: "SENT", isDemo: false,
+      appliedOn: "6/15/2026", interviewedOn: "6/29/2026", offerOn: "7/13/2026",
+      notes: "Referred by a current clinician",
+    });
     expect(hires[1].errorDetail).toContain("invalid email");
     expect(hires[1].errorDetail).not.toContain("@"); // redacted — no address leaks into the log
-    expect(hires[2]).toMatchObject({ hireId: "H-0011", email: "", isDemo: false });
+    expect(hires[2]).toMatchObject({ hireId: "H-0011", email: "", isDemo: false, appliedOn: "", notes: "" });
   });
 });
 

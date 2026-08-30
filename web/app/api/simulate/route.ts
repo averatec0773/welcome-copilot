@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
     // archiveDemoRows_) plus normal hiring volume should ever reach — this just
     // keeps the cap from silently truncating a sheet that outgrows the old 500.
     const [trackerValues, configValues] = await Promise.all([
-      readRange("Tracker!A1:L5000"),
+      readRange("Tracker!A1:P5000"),
       readRange("Config!A1:B20"),
     ]);
     if (countPendingDemoRows(mapTrackerRows(trackerValues)) >= 5) {
@@ -154,8 +154,7 @@ export async function POST(req: NextRequest) {
 
   const sheetLink = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=0&range=A${appendedRow}`;
 
-  const visitorEmailDomain = visitorEmail?.includes("@") ? visitorEmail.split("@")[1] : "";
-  audit("simulate", req, { name, alias, visitorEmailDomain });
+  audit("simulate", req, { name, alias, visitorEmail: visitorEmail ?? "" });
 
   return NextResponse.json({ alias, name, row: appendedRow, sheetLink, poked });
 }

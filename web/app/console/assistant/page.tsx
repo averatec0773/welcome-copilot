@@ -1,24 +1,24 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Explain } from "../Explain";
+import { useUnlock } from "../UnlockContext";
 
 type Source = { docTitle: string; section: string; snippet: string; updated: string };
 type Msg = { role: "user" | "assistant"; text: string; sources?: Source[]; limited?: boolean; cached?: boolean };
 
+const LOCKED_FREEFORM_MESSAGE =
+  "Free-form questions need an access code — enter it at the top right. The four suggested questions work for everyone.";
+
 export default function AssistantPage() {
+  const { unlocked, promptUnlock } = useUnlock();
   const [suggested, setSuggested] = useState<string[]>([]);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [unlocked, setUnlocked] = useState(false);
-  const [code, setCode] = useState("");
-  const [unlockBusy, setUnlockBusy] = useState(false);
-  const [unlockNote, setUnlockNote] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/ask").then((r) => r.json()).then((j) => setSuggested(j.suggested ?? []));
-    fetch("/api/unlock").then((r) => r.json()).then((j) => setUnlocked(!!j.unlocked));
   }, []);
   useEffect(() => {
     // Braces matter: scrollIntoView returns a Promise in newer Chrome, and an
@@ -26,33 +26,6 @@ export default function AssistantPage() {
     // "cleanup", crashing on unmount.
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs]);
-
-  async function unlock(e: React.SyntheticEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const c = code.trim();
-    if (!c || unlockBusy) return;
-    setUnlockBusy(true);
-    setUnlockNote("");
-    try {
-      const res = await fetch("/api/unlock", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: c }),
-      });
-      const j = await res.json();
-      if (res.ok && j.ok) {
-        setUnlocked(true);
-        setCode("");
-        setUnlockNote("Unlocked — ask anything.");
-      } else {
-        setUnlockNote("That code didn't work — check the application materials and try again.");
-      }
-    } catch {
-      setUnlockNote("Network error — please retry.");
-    } finally {
-      setUnlockBusy(false);
-    }
-  }
 
   async function ask(q: string) {
     const question = q.trim();
@@ -68,9 +41,10 @@ export default function AssistantPage() {
       });
       const j = await res.json();
       if (!res.ok) {
+        if (j.error === "locked") promptUnlock();
         const friendly =
           j.error === "locked"
-            ? "Free-form questions need an access code — it's included in the application materials. The four suggested questions work for everyone."
+            ? LOCKED_FREEFORM_MESSAGE
             : j.error === "rate_limited"
               ? "Whoa — one question at a time please. Try again in a minute."
               : j.error === "daily_budget_exhausted"
@@ -166,47 +140,28 @@ export default function AssistantPage() {
       </div>
 
       {!unlocked && (
-        <form
-          onSubmit={unlock}
-          style={{
-            display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8,
-            marginTop: 12, padding: "10px 14px", borderRadius: "var(--radius)",
-            border: "1px solid var(--border)", background: "var(--accent-soft)", fontSize: 13,
-          }}
-        >
-          <span style={{ color: "var(--muted)" }}>
-            Suggested questions are open to everyone. Have an access code?
-          </span>
-          <input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Access code"
-            style={{
-              padding: "6px 10px", borderRadius: "var(--radius)",
-              border: "1px solid var(--border)", fontSize: 13, background: "var(--surface)",
-            }}
-          />
-          <button
-            type="submit"
-            disabled={unlockBusy}
-            style={{
-              padding: "6px 14px", borderRadius: "var(--radius)", border: "none",
-              background: "var(--accent)", color: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer",
-            }}
-          >
-            Unlock
-          </button>
-          {unlockNote && <span style={{ color: "var(--muted)" }}>{unlockNote}</span>}
-        </form>
-      )}
-      {unlocked && unlockNote && (
-        <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 12 }}>{unlockNote}</p>
+        <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 12 }}>
+          Suggested questions above are open to everyone. Free-form questions need the access
+          code — enter it at the top right.
+        </p>
       )}
 
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          ask(input);
+          const question = input.trim();
+          if (!question || busy) return;
+          if (!unlocked) {
+            setInput("");
+            setMsgs((m) => [
+              ...m,
+              { role: "user", text: question },
+              { role: "assistant", text: LOCKED_FREEFORM_MESSAGE },
+            ]);
+            promptUnlock();
+            return;
+          }
+          ask(question);
         }}
         style={{ display: "flex", gap: 8, marginTop: 12 }}
       >

@@ -1,8 +1,10 @@
 "use client";
 import type { CSSProperties } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { usePoll } from "@/lib/usePoll";
 import type { Hire } from "@/lib/sheets";
 import { Explain } from "../Explain";
+import SimulatePanel from "../SimulatePanel";
 
 const LEGEND: { status: string; meaning: string }[] = [
   { status: "SENT", meaning: "welcome email delivered, will never re-send" },
@@ -77,12 +79,122 @@ function LifecycleStrip() {
   );
 }
 
+function Timeline({ hire }: { hire: Hire }) {
+  const stages: { label: string; value: string }[] = [
+    { label: "Applied", value: hire.appliedOn },
+    { label: "Interviewed", value: hire.interviewedOn },
+    { label: "Offer", value: hire.offerOn },
+    { label: "Started", value: hire.startDate },
+  ].filter((s) => s.value);
+  if (stages.length === 0) {
+    return <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>No timeline dates on file yet.</p>;
+  }
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 13 }}>
+      {stages.map((s, i) => (
+        <span key={s.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {i > 0 && <span style={{ color: "var(--muted)" }}>→</span>}
+          <span>
+            {s.label} <strong>{s.value}</strong>
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function CandidateDetail({ hire }: { hire: Hire }) {
+  return (
+    <div style={{ display: "grid", gap: 12, padding: "14px 18px" }}>
+      <Timeline hire={hire} />
+      <div
+        style={{
+          display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: 8, fontSize: 13,
+        }}
+      >
+        <div><span style={{ color: "var(--muted)" }}>License:</span> {hire.license || "—"}</div>
+        <div><span style={{ color: "var(--muted)" }}>State:</span> {hire.state || "—"}</div>
+        <div><span style={{ color: "var(--muted)" }}>Manager:</span> {hire.manager || "—"}</div>
+        <div><span style={{ color: "var(--muted)" }}>Email:</span> {hire.email || "—"}</div>
+      </div>
+      {hire.notes && (
+        <p style={{ fontSize: 13, fontStyle: "italic", color: "var(--muted)", margin: 0 }}>{hire.notes}</p>
+      )}
+      <div style={{ fontSize: 13 }}>
+        <span style={{ color: "var(--muted)" }}>Welcome email:</span>{" "}
+        {hire.welcomeStatus ? (
+          <span className={`badge ${hire.welcomeStatus}`}>{hire.welcomeStatus}</span>
+        ) : (
+          <span style={{ color: "var(--muted)" }}>—</span>
+        )}
+        {hire.errorDetail && (
+          <span style={{ color: "var(--error)", marginLeft: 8 }}>{hire.errorDetail}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SimulateModal({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,.45)",
+        display: "flex", alignItems: "flex-start", justifyContent: "center",
+        padding: "40px 16px", zIndex: 100, overflowY: "auto",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="card"
+        style={{ maxWidth: 640, width: "100%", maxHeight: "calc(100vh - 80px)", overflowY: "auto", position: "relative" }}
+      >
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            position: "absolute", top: 12, right: 12, border: "none", background: "transparent",
+            fontSize: 18, cursor: "pointer", color: "var(--muted)", lineHeight: 1,
+          }}
+        >
+          ✕
+        </button>
+        <SimulatePanel />
+      </div>
+    </div>
+  );
+}
+
 export default function TrackerPage() {
   const { data, error, refreshedAt } = usePoll<{ hires: Hire[] }>("/api/tracker");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   if (error) return <p className="card">Tracker unavailable: {error}</p>;
   if (!data) return <p>Loading tracker…</p>;
   return (
     <section>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
+        <h2 style={{ fontSize: 24, margin: 0 }}>Tracker</h2>
+        <button
+          onClick={() => setModalOpen(true)}
+          style={{
+            padding: "10px 18px", borderRadius: "var(--radius)", border: "none",
+            background: "var(--accent)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer",
+          }}
+        >
+          ▶ Simulate a hire
+        </button>
+      </div>
       <Explain
         title="This is the shared hiring spreadsheet, live"
         points={[
@@ -97,6 +209,9 @@ export default function TrackerPage() {
       <p style={{ color: "var(--muted)", fontSize: 13 }}>
         {refreshedAt && `Refreshed ${refreshedAt.toLocaleTimeString()}.`}
       </p>
+      <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 8 }}>
+        Click any row for the full candidate story.
+      </p>
       <div className="card" style={{ padding: 0, overflowX: "auto" }}>
         <table className="data">
           <thead>
@@ -107,28 +222,44 @@ export default function TrackerPage() {
             </tr>
           </thead>
           <tbody>
-            {data.hires.map((h) => (
-              <tr key={h.hireId}>
-                <td>{h.hireId}{h.isDemo ? " 🧪" : ""}</td>
-                <td>{h.name}</td>
-                <td>
-                  {h.welcomeStatus ? (
-                    <span className={`badge ${h.welcomeStatus}`}>{h.welcomeStatus}</span>
-                  ) : (
-                    <span style={{ color: "var(--muted)" }}>—</span>
+            {data.hires.map((h) => {
+              const open = expandedId === h.hireId;
+              return (
+                <Fragment key={h.hireId}>
+                  <tr
+                    className="tracker-row"
+                    onClick={() => setExpandedId(open ? null : h.hireId)}
+                  >
+                    <td>{h.hireId}{h.isDemo ? " 🧪" : ""}</td>
+                    <td>{h.name}</td>
+                    <td>
+                      {h.welcomeStatus ? (
+                        <span className={`badge ${h.welcomeStatus}`}>{h.welcomeStatus}</span>
+                      ) : (
+                        <span style={{ color: "var(--muted)" }}>—</span>
+                      )}
+                    </td>
+                    <td><span className="badge neutral">{h.status}</span></td>
+                    <td>{h.startDate}</td>
+                    <td className="hide-sm">{h.license}</td>
+                    <td className="hide-sm">{h.state}</td>
+                    <td className="hide-sm" style={{ color: "var(--muted)" }}>{h.email}</td>
+                    <td className="hide-sm" style={{ color: "var(--error)", fontSize: 13 }}>{h.errorDetail}</td>
+                  </tr>
+                  {open && (
+                    <tr>
+                      <td colSpan={9} style={{ padding: 0, borderBottom: "1px solid var(--border)", background: "var(--bg)" }}>
+                        <CandidateDetail hire={h} />
+                      </td>
+                    </tr>
                   )}
-                </td>
-                <td><span className="badge neutral">{h.status}</span></td>
-                <td>{h.startDate}</td>
-                <td className="hide-sm">{h.license}</td>
-                <td className="hide-sm">{h.state}</td>
-                <td className="hide-sm" style={{ color: "var(--muted)" }}>{h.email}</td>
-                <td className="hide-sm" style={{ color: "var(--error)", fontSize: 13 }}>{h.errorDetail}</td>
-              </tr>
-            ))}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
+      {modalOpen && <SimulateModal onClose={() => setModalOpen(false)} />}
     </section>
   );
 }

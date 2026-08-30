@@ -66,6 +66,15 @@ table.data tr:last-child td { border-bottom: none; }
 .outbox-grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
 .hide-sm { }
+
+.tracker-row { cursor: pointer; }
+.tracker-row:hover { background: var(--accent-soft); }
+
+@keyframes unlock-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(74, 107, 93, 0.55); }
+  100% { box-shadow: 0 0 0 8px rgba(74, 107, 93, 0); }
+}
+.unlock-flash { animation: unlock-pulse 0.9s ease-out; }
 @media (max-width: 760px) {
   .outbox-grid { grid-template-columns: 1fr; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
