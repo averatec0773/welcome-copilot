@@ -216,6 +216,40 @@ function SimulateModal({ visible, onClose }: { visible: boolean; onClose: () => 
   );
 }
 
+type SortKey = "id" | "name" | "welcome" | "status" | "start" | "license" | "state" | "email";
+
+// null means "no value": those rows sort last in either direction, so an
+// empty Start or Welcome email column never floats to the top.
+function sortValue(h: Hire, key: SortKey): string | number | null {
+  switch (key) {
+    case "id": return h.hireId || null;
+    case "name": return h.name ? h.name.toLowerCase() : null;
+    case "welcome": return h.welcomeStatus || null;
+    case "status": return h.status || null;
+    case "start": { const d = parseDate(h.startDate); return d ? d.getTime() : null; }
+    case "license": return h.license || null;
+    case "state": return h.state || null;
+    case "email": return h.email ? h.email.toLowerCase() : null;
+  }
+}
+
+function sortHires(hires: Hire[], sort: { key: SortKey; dir: 1 | -1 } | null): Hire[] {
+  if (!sort) return hires;
+  return [...hires].sort((a, b) => {
+    const va = sortValue(a, sort.key);
+    const vb = sortValue(b, sort.key);
+    if (va === null && vb === null) return 0;
+    if (va === null) return 1;
+    if (vb === null) return -1;
+    // localeCompare so accented names (Éloïse) sort beside their base letter
+    // instead of after Z.
+    if (typeof va === "string" && typeof vb === "string") return va.localeCompare(vb) * sort.dir;
+    if (va < vb) return -sort.dir;
+    if (va > vb) return sort.dir;
+    return 0;
+  });
+}
+
 export default function TrackerPage() {
   const { unlocked, promptUnlock } = useUnlock();
   const { data, error, refreshedAt } = usePoll<{ hires: Hire[] }>("/api/tracker");
@@ -226,6 +260,31 @@ export default function TrackerPage() {
   const [modalMounted, setModalMounted] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // Click a header to sort ascending, again for descending, a third time to
+  // restore the sheet's own order.
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 } | null>(null);
+
+  function toggleSort(key: SortKey) {
+    setSort((s) => (s?.key !== key ? { key, dir: 1 } : s.dir === 1 ? { key, dir: -1 } : null));
+  }
+
+  const sortTh = (k: SortKey, label: string, className?: string) => (
+    <th
+      className={className}
+      aria-sort={sort?.key === k ? (sort.dir === 1 ? "ascending" : "descending") : undefined}
+      onClick={() => toggleSort(k)}
+      title="Click to sort"
+      style={{ cursor: "pointer", userSelect: "none" }}
+    >
+      {label}
+      <span
+        aria-hidden
+        style={{ marginLeft: 4, fontSize: 10, color: sort?.key === k ? "var(--accent)" : "var(--border)" }}
+      >
+        {sort?.key === k ? (sort.dir === 1 ? "▲" : "▼") : "↕"}
+      </span>
+    </th>
+  );
 
   function openSimulate() {
     if (unlocked === null) return; // access check still in flight
@@ -282,13 +341,18 @@ export default function TrackerPage() {
         <table className="data">
           <thead>
             <tr>
-              <th className="nowrap hide-sm">ID</th><th className="nowrap">Name</th><th>Welcome email</th><th>Status</th><th className="nowrap hide-sm">Start</th>
-              <th className="hide-md">License</th><th className="hide-md">State</th>
-              <th className="hide-md">Email</th>
+              {sortTh("id", "ID", "nowrap hide-sm")}
+              {sortTh("name", "Name", "nowrap")}
+              {sortTh("welcome", "Welcome email")}
+              {sortTh("status", "Status")}
+              {sortTh("start", "Start", "nowrap hide-sm")}
+              {sortTh("license", "License", "hide-md")}
+              {sortTh("state", "State", "hide-md")}
+              {sortTh("email", "Email", "hide-md")}
             </tr>
           </thead>
           <tbody>
-            {data.hires.map((h) => {
+            {sortHires(data.hires, sort).map((h) => {
               const key = rowKey(h);
               const open = expandedId === key;
               return (
@@ -309,7 +373,7 @@ export default function TrackerPage() {
                     }}
                   >
                     <td className="nowrap hide-sm">{h.hireId}</td>
-                    <td className="nowrap">{h.name}{h.isDemo ? " 🧪" : ""}</td>
+                    <td className="nowrap">{h.name}</td>
                     <td>
                       {h.welcomeStatus ? (
                         <span className={`badge ${h.welcomeStatus}`}>{h.welcomeStatus}</span>

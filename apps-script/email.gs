@@ -35,6 +35,10 @@ function renderWelcomeEmail(row, assistantUrl) {
     '</ul>' +
     '<p>If anything here looks wrong, just reply to this email.</p>' +
     '<p>Warmly,<br>Mentella People Ops<br><span style="color:#5f6c62;font-size:13px">people-ops@mentella.example</span></p>' +
+    '<p style="color:#8a948c;font-size:12px;line-height:1.5;border-top:1px solid #dee4da;padding-top:10px;margin-top:18px">' +
+    'This is a demonstration email from Welcome Copilot, an unofficial job-application demo. ' +
+    'It was not sent by Mentella Health, the people and policies in it are fictional, and no real onboarding is underway. ' +
+    'Details: welcome-copilot.vercel.app</p>' +
     '</div>';
   return { subject: subject, html: html };
 }

@@ -74,8 +74,7 @@ export type SimulateRow = { row: (string | boolean)[]; name: string; alias: stri
 // welcome_status (J), and error_detail (K) start blank — the real pipeline
 // owns those from here on. name (B) is just the first name — no "Demo "
 // prefix — so the welcome email (which greets the row's first word) greets
-// the chosen name correctly; demo rows stay identifiable via is_demo (L) /
-// the tracker's 🧪 marker instead.
+// the chosen name correctly; demo rows stay identifiable via is_demo (L).
 export function buildSimulateRow(firstName: string): SimulateRow {
   const alias = buildAliasEmail(randomAliasHex());
   const name = firstName;

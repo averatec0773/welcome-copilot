@@ -51,7 +51,7 @@ editor, just the Google Sheet and the Ops Console. Every scenario below is
 4. If it's the same person entered twice, delete the extra row.
 5. No further action needed. The pipeline re-checks automatically.
 
-## Scenario: a row marked 🧪 appeared that nobody added
+## Scenario: a row appeared that nobody added
 
 1. This is expected: a visitor used the Ops Console's gated **Simulate a
    hire** modal (opened from the Tracker tab, same access code as the
@@ -63,10 +63,10 @@ editor, just the Google Sheet and the Ops Console. Every scenario below is
    `SENDING` or any other normal status.
 4. No action needed. Any demo row that actually sent is auto-archived
    (deleted) 7 days after its `welcome_sent_at`.
-5. Want it gone sooner? Delete the row yourself, any time. Demo rows show
-   a 🧪 next to their `hire_id` in the Tracker console tab, and are
-   marked `TRUE` in the Sheet's `is_demo` column — never by anything in
-   the name.
+5. Want it gone sooner? Delete the row yourself, any time. Demo rows are
+   marked `TRUE` in the Sheet's `is_demo` column (never by anything in
+   the name), and their notes read "Created by a demo visitor via
+   Simulate".
 
 ## Scenario: a row is stuck on SENDING
 
