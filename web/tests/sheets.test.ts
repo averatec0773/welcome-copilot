@@ -4,7 +4,7 @@ import { mapTrackerRows, mapOutboxRows, mapConfig } from "@/lib/sheets";
 const TRACKER = [
   ["hire_id", "name", "email", "license", "state", "start_date", "manager", "status", "welcome_sent_at", "welcome_status", "error_detail", "is_demo"],
   ["H-0001", "Maria Chen", "a+maria@gmail.com", "LMFT", "CA", "8/3/2026", "Dana", "Onboarded", "7/20/2026", "SENT", "", "FALSE"],
-  ["H-0005", "Daniel Reyes", "daniel.reyes@", "PsyD", "FL", "9/14/2026", "Dana", "Hired", "", "INVALID", 'invalid email: "daniel.reyes@"', "FALSE"],
+  ["H-0005", "Daniel Reyes", "daniel.reyes@", "PsyD", "FL", "9/14/2026", "Dana", "Hired", "", "INVALID", "invalid email format", "FALSE"],
   ["", "", "", "", "", "", "", "", "", "", "", ""],
   ["H-0011", "Short Row"],
 ];
@@ -15,20 +15,21 @@ describe("mapTrackerRows", () => {
     expect(hires).toHaveLength(3);
     expect(hires[0]).toMatchObject({ hireId: "H-0001", name: "Maria Chen", welcomeStatus: "SENT", isDemo: false });
     expect(hires[1].errorDetail).toContain("invalid email");
+    expect(hires[1].errorDetail).not.toContain("@"); // redacted — no address leaks into the log
     expect(hires[2]).toMatchObject({ hireId: "H-0011", email: "", isDemo: false });
   });
 });
 
 describe("mapOutboxRows", () => {
-  it("maps and returns newest first", () => {
+  it("sorts newest first by sent_at, regardless of sheet order", () => {
     const rows = [
       ["hire_id", "to", "subject", "body_html", "mode", "sent_at"],
-      ["H-0004", "a+p@gmail.com", "Welcome, Priya!", "<div>hi</div>", "DRY_RUN", "8/29/2026 15:21:32"],
-      ["H-0006", "a+e@gmail.com", "Welcome, Emily!", "<div>yo</div>", "LIVE", "8/29/2026 16:00:00"],
+      ["H-0001", "a+maria@gmail.com", "Welcome, Maria!", "<div>1</div>", "LIVE", "7/20/2026"],
+      ["H-0003", "a+sarah@gmail.com", "Welcome, Sarah!", "<div>3</div>", "LIVE", "8/18/2026"],
+      ["H-0002", "a+james@gmail.com", "Welcome, James!", "<div>2</div>", "LIVE", "7/27/2026"],
     ];
     const emails = mapOutboxRows(rows);
-    expect(emails[0].hireId).toBe("H-0006");
-    expect(emails[1].mode).toBe("DRY_RUN");
+    expect(emails.map((e) => e.hireId)).toEqual(["H-0003", "H-0002", "H-0001"]);
   });
 });
 

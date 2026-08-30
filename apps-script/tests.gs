@@ -9,6 +9,7 @@ function runTests() {
   check('bad email fails', validateRow({ name: 'A B', email: 'a@', startDate: new Date() }).ok === false);
   check('missing name fails', validateRow({ name: ' ', email: 'a@b.com', startDate: new Date() }).ok === false);
   check('missing date fails', validateRow({ name: 'A', email: 'a@b.com', startDate: '' }).ok === false);
+  check('email error is redacted', validateRow({ name: 'A', email: 'bad@', startDate: new Date() }).errors.join(' ').indexOf('bad@') === -1);
 
   const row = { name: 'Maria Chen', startDate: new Date(2026, 8, 15), state: 'CA', manager: 'Dana Whitfield', license: 'LMFT' };
   const msg = renderWelcomeEmail(row, 'https://example.com/assistant');

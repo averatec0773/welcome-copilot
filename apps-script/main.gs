@@ -13,11 +13,20 @@ function runPipeline() {
     // Fail closed: a missing or mangled dry_run row means drafts, not live mail.
     const dryRun = String(cfg.dry_run).toUpperCase() !== 'FALSE';
     const allRows = readTrackerRows_();
-    // First hire_id to claim an email wins; every later row with that email is a duplicate.
-    const emailOwner = {};
+    const hireNum_ = function (id) {
+      const m = /^H-(\d+)$/i.exec(String(id).trim());
+      return m ? parseInt(m[1], 10) : Infinity;
+    };
+    // owner = lowest hire_id; any already-sent twin always blocks — survives re-sorting.
+    const emailInfo = {};
     allRows.forEach(function (r) {
       const email = String(r.email).trim().toLowerCase();
-      if (email && !(email in emailOwner)) emailOwner[email] = r.hireId;
+      if (!email) return;
+      if (!emailInfo[email]) emailInfo[email] = { minHireNum: Infinity, minHireId: null, sentHireIds: [] };
+      const info = emailInfo[email];
+      const num = hireNum_(r.hireId);
+      if (num < info.minHireNum) { info.minHireNum = num; info.minHireId = r.hireId; }
+      if (r.sentAt) info.sentHireIds.push(r.hireId);
     });
     const eligible = allRows.filter(function (r) {
       if (r.status !== TRIGGER_STATUS || r.sentAt) return false;
@@ -29,18 +38,24 @@ function runPipeline() {
     for (let i = 0; i < eligible.length; i++) {
       const row = eligible[i];
       const email = String(row.email).trim().toLowerCase();
-      if (email && emailOwner[email] !== row.hireId) {
-        const firstTime = row.welcomeStatus !== 'DUPLICATE';
-        writeBack_(sheet, row, { status: 'DUPLICATE', error: 'duplicate of ' + emailOwner[email] });
-        if (firstTime) {
-          log_(runId, row.hireId, 'DUPLICATE', 'duplicate of ' + emailOwner[email]);
-          alertAdmin('Duplicate hire row ' + row.hireId,
-            'Email already claimed by ' + emailOwner[email] + '. Fix the row; it will send on the next run once corrected.');
+      const info = email ? emailInfo[email] : null;
+      if (info) {
+        const otherSent = info.sentHireIds.filter(function (id) { return String(id) !== String(row.hireId); });
+        const isDuplicate = otherSent.length > 0 || hireNum_(row.hireId) !== info.minHireNum;
+        if (isDuplicate) {
+          const ownerId = otherSent.length > 0 ? otherSent[0] : info.minHireId;
+          const firstTime = row.welcomeStatus !== 'DUPLICATE';
+          writeBack_(sheet, row, { status: 'DUPLICATE', error: 'duplicate of ' + ownerId });
+          if (firstTime) {
+            log_(runId, row.hireId, 'DUPLICATE', 'duplicate of ' + ownerId);
+            alertAdmin('Duplicate hire row ' + row.hireId,
+              'Email already claimed by ' + ownerId + '. Fix the row; it will send on the next run once corrected.');
+          }
+          continue;
         }
-        continue;
       }
       if (!dryRun && MailApp.getRemainingDailyQuota() < QUOTA_FLOOR) {
-        log_(runId, '-', 'QUOTA_HOLD', (eligible.length - i) + ' row(s) held; retry next run');
+        log_(runId, '-', 'QUOTA_HOLD', 'up to ' + (eligible.length - i) + ' row(s) held; retry next run');
         break;
       }
       processRow_(row, cfg, dryRun, runId);

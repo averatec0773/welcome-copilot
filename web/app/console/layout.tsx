@@ -16,7 +16,7 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   return (
     <div className="container" style={{ padding: "24px 24px 64px" }}>
-      <header style={{ display: "flex", alignItems: "baseline", gap: 16, marginBottom: 8 }}>
+      <header style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 16, marginBottom: 8 }}>
         <Link href="/" style={{ textDecoration: "none", fontWeight: 700, color: "var(--ink)" }}>
           Welcome Copilot
         </Link>

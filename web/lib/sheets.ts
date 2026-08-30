@@ -48,14 +48,26 @@ export function mapTrackerRows(values: string[][]): Hire[] {
 }
 
 export function mapOutboxRows(values: string[][]): OutboxEmail[] {
-  return values
+  const rows = values
     .slice(1)
     .filter((r) => cell(r, 0))
     .map((r) => ({
       hireId: cell(r, 0), to: cell(r, 1), subject: cell(r, 2),
       bodyHtml: cell(r, 3), mode: cell(r, 4), sentAt: cell(r, 5),
-    }))
-    .reverse(); // append-only sheet → reverse = newest first
+    }));
+  // Sort newest first by parsed sent_at (invalid/blank dates treated as epoch 0);
+  // ties broken by original index descending, matching the old reverse() behavior.
+  return rows
+    .map((row, i) => ({ row, i }))
+    .sort((a, b) => {
+      const ta = new Date(a.row.sentAt).getTime();
+      const tb = new Date(b.row.sentAt).getTime();
+      const na = Number.isNaN(ta) ? 0 : ta;
+      const nb = Number.isNaN(tb) ? 0 : tb;
+      if (nb !== na) return nb - na;
+      return b.i - a.i;
+    })
+    .map(({ row }) => row);
 }
 
 export function mapConfig(values: string[][]): Record<string, string> {

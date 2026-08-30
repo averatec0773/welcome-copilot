@@ -62,7 +62,7 @@ export default function HealthPage() {
                 <td>{l.timestamp}</td>
                 <td style={{ fontFamily: "monospace", fontSize: 12 }}>{l.runId}</td>
                 <td>{l.hireId}</td>
-                <td><span className={`badge ${l.action === "SEND" ? "SENT" : l.action === "DRAFT" ? "DRAFTED" : ["ERROR", "INVALID"].includes(l.action) ? "ERROR" : "neutral"}`}>{l.action}</span></td>
+                <td><span className={`badge ${l.action === "SEND" ? "SENT" : l.action === "DRAFT" ? "DRAFTED" : l.action === "DUPLICATE" ? "DUPLICATE" : ["ERROR", "INVALID"].includes(l.action) ? "ERROR" : "neutral"}`}>{l.action}</span></td>
                 <td style={{ fontSize: 13 }}>{l.result}</td>
               </tr>
             ))}
@@ -70,7 +70,7 @@ export default function HealthPage() {
         </table>
       </div>
       <p style={{ fontSize: 12, color: "var(--muted)" }}>
-        The log records hire_ids and redacted validation messages — never names or addresses.
+        Validation messages are redacted — the log carries hire_ids, not names or addresses.
       </p>
     </section>
   );

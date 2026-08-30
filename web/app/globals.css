@@ -35,6 +35,7 @@ a { color: var(--accent); }
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 .badge.SENT { background: #e5f4ec; color: var(--sent); }
 .badge.DRAFTED { background: #fdf1e3; color: var(--drafted); }
