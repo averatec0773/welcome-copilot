@@ -1,122 +1,59 @@
 # Welcome Copilot
 
-From "Hired" in a shared spreadsheet to a personalized welcome email, an onboarding assistant, and an ops console — automatically, reliably, observably.
+HR marks a row "Hired" in a shared Google Sheet. This system sends the welcome email, keeps proof of every send, and alerts a human the moment anything stops working.
 
-> Unofficial demo built in response to Mentella Health's application task. All people, emails, and policies are fictional; recipient addresses are + aliases of the author's own inbox.
+**[Live demo](https://welcome-copilot.vercel.app)** · **[Walkthrough PDF](https://welcome-copilot.vercel.app/walkthrough.pdf)** (8 pages, all screenshots from the live system)
 
-## Live demo
-
-**[welcome-copilot.vercel.app](https://welcome-copilot.vercel.app)**
-
-What to try:
-
-- Watch the **Tracker** — hires move through the pipeline in near-real time.
-- Open an email in the **Outbox** — every send is archived byte-for-byte, drafts included.
-- Check **Health** — the pipeline's dead-man's-switch, quota, and run log.
-- Read the **Operator Inbox** — the actual alert and daily-digest emails the pipeline sends itself.
-- Ask the assistant one of its suggested questions — answered from the handbook with citations, no API cost.
-- A validated CSV-export report, no API involved at all, is available at `/console/utilization` (not in the main nav).
-
-Free-form questions are gated behind an access code from the application materials.
-
-Behind that same code, **Simulate** appends a real row to the shared sheet and pokes the
-real pipeline end-to-end — validation, render, send, archive — with a live status panel and
-the actual email inline. The recipient is always a + alias of the author's own inbox.
+> Unofficial demo built for Mentella Health's application task. All people and policies are fictional, and every recipient address is a + alias of the author's own inbox.
 
 ## How it works
 
-```mermaid
-flowchart LR
-    A[HR marks row Hired] --> B[Apps Script trigger<br/>every 5 min]
-    B --> C{Validate row}
-    C -->|invalid| C1[Mark INVALID<br/>alert admin]
-    C -->|valid| D[Render welcome email]
-    D --> E[Archive to Outbox]
-    E --> F[Send via Gmail]
-    F --> G[Write back sent_at]
-    G --> H[Heartbeat ping<br/>healthchecks.io]
+<img src="docs/walkthrough/shots/01-landing-diagram.png" alt="Two ways in (edit the sheet, or press Simulate), one pipeline with INVALID/DUPLICATE guards, and a watchdog layer" width="820">
 
-    SHEET[(Google Sheet)] -.reads + one gated append.-> WEB[Next.js console<br/>+ assistant]
-    B -.reads/writes.-> SHEET
-```
+Two ways in: edit the sheet by hand (picked up within 5 minutes), or press **▶ Simulate a hire** in the console (triggers the same pipeline immediately). Either way the Sheet stays the single source of truth: the console reads it through a service account, the bound Apps Script owns all pipeline writes, and the two never talk to each other directly.
 
-The Apps Script pipeline and the Next.js console never talk to each other directly — they share state only through the Sheet: the console reads via a service account (its only write is the invite-code-gated Simulate append), while the bound script owns all pipeline writes.
+## What it looks like
 
-## Reliability, by design
+One button press, about thirty seconds, one real email:
 
-- **Idempotency** — a non-empty `welcome_sent_at` means done, forever. No re-sends on re-runs.
-- **At-most-once sends** — the row is stamped `SENDING` and flushed to the sheet *before* `GmailApp.sendEmail` is called, so a crash mid-send never leaves an email both unsent and unmarked.
-- **Writes keyed by `hire_id`, not row position** — the sheet gets sorted and edited by people mid-run; every write re-locates its row by id first.
-- **Fail-closed dry-run** — anything other than `FALSE` in the config means drafts, never live mail.
-- **Quota guard** — the run stops before Gmail's daily send quota is exhausted and picks up the remaining rows next cycle.
+<p>
+  <img src="docs/walkthrough/shots/08-simulate-result.png" alt="Simulate result: row appended, SENT, email previewed in place" width="49%">
+  <img src="docs/walkthrough/shots/12-gmail.png" alt="The same email delivered to a real Gmail inbox, demo disclaimer included" width="49%">
+</p>
 
-## You'd know if it broke
+The console also has a sortable live **Tracker** with expandable candidate rows, an **Outbox** of every email archived before it was sent, an **Operator Inbox** of the alerts and digests the pipeline mails its human, a **Health** page with a dead-man's-switch badge, and an **Assistant** that answers onboarding questions from a 9-doc handbook with citations, a browsable source rail, and honest refusals.
 
-Three independent defenses, because monitoring that depends on the thing it's watching isn't monitoring:
+## Why it doesn't fall over
 
-1. **Instant error alerts** — invalid rows and pipeline exceptions email the admin the moment they happen.
-2. **Dead-man's-switch** — a heartbeat ping to [healthchecks.io](https://healthchecks.io) after every run. It watches for *silence*, so a disabled trigger, an expired auth token, or a dead script gets caught even though nothing "errored."
-3. **Daily digest** — a plain-English summary (sent, drafted, invalid, errors, quota holds, rows stuck in `SENDING`) so a human doesn't have to read the log to know the day was normal.
+- **Never sends twice.** The sheet itself records every send, keyed by hire ID rather than row position. Re-sort it, edit it, crash mid-run: a sent row stays sent.
+- **At-most-once.** A `SENDING` marker is flushed to the sheet before Gmail is called. A crash mid-send waits for a human instead of auto-retrying into a double send.
+- **Fails closed.** Anything other than an explicit `dry_run = FALSE` means drafts, never live mail. A quota guard stops sends before Gmail's daily limit.
+- **Bad data is loud.** A typo'd address becomes `INVALID`, a pasted duplicate becomes `DUPLICATE`, and neither sends. Two such rows are staged in the live sheet on purpose.
 
-## The assistant
+And three ways to hear about a failure, because monitoring that depends on the thing it watches isn't monitoring: instant error alerts, a [healthchecks.io](https://healthchecks.io) dead-man's-switch that catches *silence* (dead trigger, revoked auth), and a plain-English daily digest.
 
-**Retrieval:** [MiniSearch](https://github.com/lucaong/minisearch) over the handbook's Markdown files, chunked by section. Deliberately no vector database — at nine documents, a full-text index is simpler, faster to iterate on, and has nothing to deploy. That trade-off flips once the corpus needs semantic matching across paraphrased questions or grows past what a single in-memory index can hold comfortably; either is the signal to move to embeddings.
+## The assistant, briefly
 
-**Generation:** `claude-haiku-4-5`, answering only from the retrieved excerpts, with inline citations and instructions to say "I'm not sure" rather than guess.
+MiniSearch full-text retrieval over nine Markdown docs (deliberately no vector database at this size), `claude-haiku-4-5` answering only from the retrieved excerpts, citations on every answer, and "I'm not sure" instead of guessing. The four suggested questions are served from a prebaked cache at zero API cost; free-form questions sit behind an access code plus rate caps, and every limit shows a live remaining count.
 
-**Cost containment**, layered so most traffic never reaches the API:
-
-- The four suggested questions are answered from a prebaked cache — zero API calls.
-- Free-form questions require an invite code.
-- Per-IP and daily global rate caps sit behind the code as defense-in-depth.
-
-## Utilization slice — the no-API craft: validated manual exports → SQL → report
-
-Several core clinical and billing systems in a real practice expose no API — only a
-scheduled manual CSV export. This slice, available at `/console/utilization` (not in the
-main nav), treats that export as the interface instead of pretending it doesn't exist: two
-mock monthly billing exports
-(`web/data/billing-export-2026-0{7,8}.csv`) are loaded into an in-memory SQLite database
-via [sql.js](https://github.com/sql-js/sql.js) at build time, run through a set of loud
-validations (row counts, date ranges, duplicate rows, unknown clinician ids against a
-hardcoded roster, positive sessions, month-over-month drift), then through one readable
-SQL query (`web/data/utilization.sql`) that computes sessions, billed hours, utilization
-against a 25h/week caseload target, and the change from the prior month. The seeded
-anomaly — an unknown `clinician_id` in the August export — is caught and surfaced in the
-page's validation banner, not silently dropped. Everything runs in `npm run prebuild`
-and is committed as static JSON (`web/content/utilization.json`); the page itself is a
-server component with zero runtime cost.
+There's also a no-API slice at `/console/utilization`: two mock CSV billing exports validated loudly, run through one readable SQL query, and published as a static report, because several core clinical and billing systems in a real practice have no API at all.
 
 ## Repo layout
 
 | Path | Contents |
 |---|---|
 | `apps-script/` | The pipeline: validation, rendering, sending, monitoring. Managed with `clasp`. |
-| `web/` | Next.js ops console (Tracker, Outbox, Health) and the handbook assistant. |
-| `docs/` | Design docs — see below. |
-
-## Docs
-
-- [`docs/sketch.md`](docs/sketch.md) — the practical task, answered: what
-  I'd use, what could go wrong, how I'd know it silently stopped.
-- [`docs/RUNBOOK.md`](docs/RUNBOOK.md) — for a non-technical operator: one
-  scenario at a time, no code.
-- [`docs/design.md`](docs/design.md) — the design decisions and trade-offs,
-  including the PII-vs-PHI boundary and what was consciously skipped.
-- [`docs/tracker-v2.md`](docs/tracker-v2.md) — what breaks in the
-  spreadsheet tracker at scale, and the migration path off it.
+| `web/` | Next.js ops console and the handbook assistant. |
+| `docs/` | [The original sketch](docs/sketch.md), an [operator RUNBOOK](docs/RUNBOOK.md), [design decisions](docs/design.md), [tracker-at-scale notes](docs/tracker-v2.md), and the [walkthrough](docs/walkthrough/). |
 
 ## Running it yourself
 
-Prerequisites:
+<details>
+<summary>Prerequisites and environment variables</summary>
 
-- A Google Sheet with an Apps Script project bound to it, pushed with [`clasp`](https://github.com/google/clasp).
-- A GCP service account, shared as Editor on that Sheet (the console reads everywhere and writes only via the gated Simulate append).
-- A Vercel account to deploy `web/`.
-- An [Upstash](https://upstash.com) Redis database for rate limiting.
-- An Anthropic API key.
+You need: a Google Sheet with a bound Apps Script project (pushed with [`clasp`](https://github.com/google/clasp)), a GCP service account shared as Editor on that Sheet, a Vercel account for `web/`, an [Upstash](https://upstash.com) Redis database, and an Anthropic API key.
 
-Environment variables (`web/.env.local` for local dev, Vercel project env vars for deploys):
+Environment variables (`web/.env.local` locally, Vercel project env vars for deploys):
 
 | Variable | Description |
 |---|---|
@@ -126,11 +63,11 @@ Environment variables (`web/.env.local` for local dev, Vercel project env vars f
 | `ANTHROPIC_API_KEY` | Anthropic API key for the assistant. |
 | `UPSTASH_REDIS_REST_URL` | Upstash Redis REST endpoint, for rate limiting. |
 | `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token. |
-| `DEMO_ACCESS_CODE` | Invite code gating free-form assistant questions. |
+| `DEMO_ACCESS_CODE` | Invite code gating free-form questions and Simulate. |
 | `HEALTHCHECKS_BADGE_URL` | Optional. Public status badge URL shown on the Health page. |
-| `GAS_WEBHOOK_URL` | Optional. The Apps Script web-app URL that `/api/simulate` pokes for an instant pipeline run instead of waiting for the 5-minute trigger. |
-| `SIMULATE_TOKEN` | Optional (required alongside `GAS_WEBHOOK_URL`). Shared secret sent with that poke; must match the Apps Script project's `SIMULATE_TOKEN` Script Property of the same name. |
-| `AUDIT_SHEET_ID` | Optional. ID of a private Google Sheet (not the public demo tracker) that logs unlock attempts, assistant questions and answers, and simulate runs. Unset disables audit logging entirely. |
+| `GAS_WEBHOOK_URL` | Optional. Apps Script web-app URL that `/api/simulate` pokes for an instant run. |
+| `SIMULATE_TOKEN` | Required alongside `GAS_WEBHOOK_URL`. Shared secret, matching the Script Property of the same name. |
+| `AUDIT_SHEET_ID` | Optional. Private Sheet that logs unlocks, questions, and simulate runs. Unset disables auditing. |
 
 ```
 cd web
@@ -138,8 +75,10 @@ npm install
 npm run dev
 ```
 
+</details>
+
 ## Stack
 
 Google Apps Script (pipeline) · Next.js + React (console) · MiniSearch + Claude Haiku (assistant) · Upstash Redis (rate limiting) · Vercel (hosting).
 
-MIT licensed — see [LICENSE](LICENSE).
+MIT licensed. See [LICENSE](LICENSE).
