@@ -35,6 +35,7 @@ function runPipeline() {
       return true;
     });
     const sheet = ss_().getSheetByName(TRACKER_SHEET);
+    let sent = 0, drafted = 0, held = 0, dup = 0, invalid = 0;
     for (let i = 0; i < eligible.length; i++) {
       const row = eligible[i];
       const email = String(row.email).trim().toLowerCase();
@@ -46,6 +47,7 @@ function runPipeline() {
           const ownerId = otherSent.length > 0 ? otherSent[0] : info.minHireId;
           const firstTime = row.welcomeStatus !== 'DUPLICATE';
           writeBack_(sheet, row, { status: 'DUPLICATE', error: 'duplicate of ' + ownerId });
+          dup++;
           if (firstTime) {
             log_(runId, row.hireId, 'DUPLICATE', 'duplicate of ' + ownerId);
             alertAdmin('Duplicate hire row ' + row.hireId,
@@ -55,10 +57,17 @@ function runPipeline() {
         }
       }
       if (!dryRun && MailApp.getRemainingDailyQuota() < QUOTA_FLOOR) {
-        log_(runId, '-', 'QUOTA_HOLD', 'up to ' + (eligible.length - i) + ' row(s) held; retry next run');
+        held = eligible.length - i;
+        log_(runId, '-', 'QUOTA_HOLD', 'up to ' + held + ' row(s) held; retry next run');
         break;
       }
-      processRow_(row, cfg, dryRun, runId);
+      const outcome = processRow_(row, cfg, dryRun, runId);
+      if (outcome === 'SEND') sent++;
+      else if (outcome === 'DRAFT') drafted++;
+      else if (outcome === 'INVALID') invalid++;
+    }
+    if (eligible.length > 0) {
+      log_(runId, '-', 'RUN', eligible.length + ' eligible · ' + sent + ' sent · ' + drafted + ' drafted · ' + dup + ' duplicate · ' + invalid + ' invalid');
     }
     setConfigValue('last_run_at', new Date().toISOString());
     setConfigValue('mail_quota_remaining', MailApp.getRemainingDailyQuota());
@@ -83,7 +92,7 @@ function processRow_(row, cfg, dryRun, runId) {
       log_(runId, row.hireId, 'INVALID', v.errors.join('; '));
       alertAdmin('Invalid hire row ' + row.hireId, v.errors.join('\n') + '\nFix the row; it will send on the next run.');
     }
-    return;
+    return 'INVALID';
   }
   const msg = renderWelcomeEmail(row, cfg.assistant_url);
   appendOutbox_(row, msg, dryRun);
@@ -91,14 +100,15 @@ function processRow_(row, cfg, dryRun, runId) {
     GmailApp.createDraft(row.email, msg.subject, '', { htmlBody: msg.html });
     writeBack_(sheet, row, { status: 'DRAFTED', error: '' });
     log_(runId, row.hireId, 'DRAFT', 'draft created (dry run)');
-  } else {
-    // At-most-once: abort if the SENDING stamp did not land — never send unmarked.
-    if (!writeBack_(sheet, row, { status: 'SENDING' })) return;
-    SpreadsheetApp.flush(); // the SENDING stamp must be durable before mail leaves
-    GmailApp.sendEmail(row.email, msg.subject, '', { htmlBody: msg.html, name: 'Mentella People Ops' });
-    writeBack_(sheet, row, { sentAt: new Date(), status: 'SENT', error: '' });
-    log_(runId, row.hireId, 'SEND', 'sent to alias');
+    return 'DRAFT';
   }
+  // At-most-once: abort if the SENDING stamp did not land — never send unmarked.
+  if (!writeBack_(sheet, row, { status: 'SENDING' })) return;
+  SpreadsheetApp.flush(); // the SENDING stamp must be durable before mail leaves
+  GmailApp.sendEmail(row.email, msg.subject, '', { htmlBody: msg.html, name: 'Mentella People Ops' });
+  writeBack_(sheet, row, { sentAt: new Date(), status: 'SENT', error: '' });
+  log_(runId, row.hireId, 'SEND', 'sent to alias');
+  return 'SEND';
 }
 
 function readTrackerRows_() {

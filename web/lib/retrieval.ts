@@ -9,21 +9,25 @@ export type Chunk = {
   category: string;
   section: string;
   text: string;
+  updated: string;
 };
 
 export function chunkDoc(raw: string, sourceName: string): Chunk[] {
   const { data, content } = matter(raw);
   const docTitle = String(data.title ?? sourceName);
   const category = String(data.category ?? "");
+  // YAML parses an unquoted date like `2026-08-01` as a Date, not a string.
+  const rawUpdated = data.updated;
+  const updated = rawUpdated instanceof Date ? rawUpdated.toISOString().slice(0, 10) : String(rawUpdated ?? "");
   const parts = content.split(/^## +/m);
   const chunks: Chunk[] = [];
   const intro = parts[0].trim();
-  if (intro) chunks.push({ id: 0, docTitle, category, section: "Overview", text: intro });
+  if (intro) chunks.push({ id: 0, docTitle, category, section: "Overview", text: intro, updated });
   for (const part of parts.slice(1)) {
     const nl = part.indexOf("\n");
     const section = (nl === -1 ? part : part.slice(0, nl)).trim();
     const text = (nl === -1 ? "" : part.slice(nl + 1)).trim();
-    if (text) chunks.push({ id: 0, docTitle, category, section, text });
+    if (text) chunks.push({ id: 0, docTitle, category, section, text, updated });
   }
   return chunks;
 }
@@ -43,7 +47,7 @@ function buildIndex() {
   }
   const index = new MiniSearch<Chunk>({
     fields: ["docTitle", "section", "text"],
-    storeFields: ["docTitle", "category", "section", "text"],
+    storeFields: ["docTitle", "category", "section", "text", "updated"],
   });
   index.addAll(chunks);
   cache = { chunks, index };
@@ -61,5 +65,6 @@ export function searchHandbook(query: string, k = 3): Chunk[] {
       category: String(r.category),
       section: String(r.section),
       text: String(r.text),
+      updated: String(r.updated ?? ""),
     }));
 }

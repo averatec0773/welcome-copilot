@@ -29,11 +29,19 @@ function dailyDigest() {
   const count = function (a) {
     return entries.filter(function (r) { return r[3] === a; }).length;
   };
-  const stuck = ss_().getSheetByName(TRACKER_SHEET).getDataRange().getValues().slice(1)
+  const trackerRows = ss_().getSheetByName(TRACKER_SHEET).getDataRange().getValues().slice(1);
+  const stuck = trackerRows
     .filter(function (r) { return r[COL.WELCOME_STATUS - 1] === 'SENDING' && !r[COL.SENT_AT - 1]; }).length;
+  const demoHireIds = {};
+  trackerRows.forEach(function (r) {
+    const isDemo = r[COL.IS_DEMO - 1] === true || String(r[COL.IS_DEMO - 1]).toUpperCase() === 'TRUE';
+    if (isDemo) demoHireIds[String(r[COL.HIRE_ID - 1])] = true;
+  });
+  const demoSends = entries.filter(function (r) { return r[3] === 'SEND' && demoHireIds[String(r[2])]; }).length;
   const body = [
     'welcome-copilot pipeline — last 24h',
     'Emails sent: ' + count('SEND'),
+    'Demo sends today: ' + demoSends,
     'Drafts created (dry-run): ' + count('DRAFT'),
     'Invalid rows: ' + count('INVALID'),
     'Duplicate rows: ' + count('DUPLICATE'),
@@ -46,6 +54,9 @@ function dailyDigest() {
     'No news from me tomorrow would itself be a signal — check the triggers.',
   ].join('\n');
   alertAdmin('Daily digest', body);
+  log_('-', '-', 'DIGEST',
+    'sent ' + count('SEND') + ' · demo ' + demoSends + ' · drafted ' + count('DRAFT') + ' · invalid ' + count('INVALID') +
+    ' · duplicate ' + count('DUPLICATE') + ' · errors ' + count('ERROR') + ' · stuck ' + stuck);
   archiveDemoRows_();
 }
 

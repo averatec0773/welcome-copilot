@@ -23,7 +23,7 @@ const SYSTEM = [
 
 export type AskResponse = {
   answer: string;
-  sources: { docTitle: string; section: string; snippet: string }[];
+  sources: { docTitle: string; section: string; snippet: string; updated: string }[];
   limited?: boolean;
   cached?: boolean;
 };
@@ -41,6 +41,7 @@ export async function answerQuestion(question: string): Promise<AskResponse> {
     docTitle: c.docTitle,
     section: c.section,
     snippet: c.text.length > 220 ? c.text.slice(0, 220) + "…" : c.text,
+    updated: c.updated,
   }));
   if (chunks.length === 0) {
     return {

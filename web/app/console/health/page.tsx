@@ -29,14 +29,23 @@ export default function HealthPage() {
         <div className="card">
           <div style={{ fontSize: 13, color: "var(--muted)" }}>Last pipeline run</div>
           <div style={{ fontSize: 26, fontWeight: 700, color: f.color }}>{f.label}</div>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
+            Red? Check the Apps Script triggers, then the RUNBOOK.
+          </div>
         </div>
         <div className="card">
           <div style={{ fontSize: 13, color: "var(--muted)" }}>Mode</div>
           <div style={{ fontSize: 26, fontWeight: 700 }}>{data.dryRun ? "DRY-RUN" : "LIVE"}</div>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
+            LIVE sends real email; DRY-RUN only drafts.
+          </div>
         </div>
         <div className="card">
           <div style={{ fontSize: 13, color: "var(--muted)" }}>Mail quota left today</div>
           <div style={{ fontSize: 26, fontWeight: 700 }}>{data.mailQuotaRemaining || "—"}</div>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
+            Gmail allows ~100/day; the pipeline holds sends below 20 left.
+          </div>
         </div>
         <div className="card">
           <div style={{ fontSize: 13, color: "var(--muted)" }}>Dead man's switch</div>
@@ -47,7 +56,14 @@ export default function HealthPage() {
             "—"
           )}
           <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
-            healthchecks.io alerts when the pipeline goes silent.
+            Alerts fire when the pipeline goes silent — whatever the cause.
+          </div>
+        </div>
+        <div className="card">
+          <div style={{ fontSize: 13, color: "var(--muted)" }}>Assistant budget</div>
+          <div style={{ fontSize: 26, fontWeight: 700 }}>300/day</div>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
+            Free-form answers are capped; suggested questions are cached.
           </div>
         </div>
       </div>

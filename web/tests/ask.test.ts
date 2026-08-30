@@ -9,7 +9,7 @@ afterEach(() => {
 describe("buildPrompt", () => {
   it("numbers excerpts and appends the question", () => {
     const p = buildPrompt("How do I reset my password?", [
-      { id: 0, docTitle: "EHR Access", category: "IT", section: "Password resets", text: "Use the self-service link." },
+      { id: 0, docTitle: "EHR Access", category: "IT", section: "Password resets", text: "Use the self-service link.", updated: "2026-08-01" },
     ]);
     expect(p).toContain("[1] EHR Access — Password resets");
     expect(p).toContain("Use the self-service link.");

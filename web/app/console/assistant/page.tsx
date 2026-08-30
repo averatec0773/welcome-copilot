@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
-type Source = { docTitle: string; section: string; snippet: string };
+type Source = { docTitle: string; section: string; snippet: string; updated: string };
 type Msg = { role: "user" | "assistant"; text: string; sources?: Source[]; limited?: boolean; cached?: boolean };
 
 export default function AssistantPage() {
@@ -144,6 +144,9 @@ export default function AssistantPage() {
                 {m.sources.map((s, j) => (
                   <p key={j} style={{ margin: "6px 0" }}>
                     <strong>[{j + 1}] {s.docTitle} — {s.section}</strong>
+                    {s.updated && (
+                      <span style={{ fontSize: 12, color: "var(--muted)" }}> · updated {s.updated}</span>
+                    )}
                     <br />
                     {s.snippet}
                   </p>

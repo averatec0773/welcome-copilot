@@ -22,7 +22,7 @@ describe("chunkDoc", () => {
   it("splits on ## and keeps intro as Overview", () => {
     const chunks = chunkDoc(RAW, "test-doc.md");
     expect(chunks).toHaveLength(3);
-    expect(chunks[0]).toMatchObject({ docTitle: "Test Doc", section: "Overview" });
+    expect(chunks[0]).toMatchObject({ docTitle: "Test Doc", section: "Overview", updated: "2026-08-01" });
     expect(chunks[1].section).toBe("Requesting access");
     expect(chunks[1].text).toContain("IT Hub");
   });

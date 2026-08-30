@@ -63,7 +63,7 @@ table.data td { padding: 10px 12px; border-bottom: 1px solid var(--border); vert
 table.data tr:last-child td { border-bottom: none; }
 
 .outbox-grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
-.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
 .hide-sm { }
 @media (max-width: 760px) {
   .outbox-grid { grid-template-columns: 1fr; }
