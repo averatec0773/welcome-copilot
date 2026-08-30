@@ -114,20 +114,24 @@ export default function Home() {
         <h2 style={{ textAlign: "center", marginBottom: 24 }}>How it works</h2>
         <div style={{ maxWidth: 860, margin: "0 auto" }}>
           <div className="card" style={{ padding: "16px 20px" }}>
-            <LaneLabel>1 · The team</LaneLabel>
+            <LaneLabel>1 · Two ways in</LaneLabel>
             <p style={{ margin: "0 0 10px", fontSize: 15 }}>
-              HR marks a row &ldquo;Hired&rdquo; in the shared Google Sheet, the same tracker
-              the team already edits. The sheet stays the source of truth; nobody learns a new
-              tool.
+              The classic way: HR marks a row &ldquo;Hired&rdquo; in the shared Google Sheet,
+              the same tracker the team already edits. Or straight from this site: the
+              console&rsquo;s <strong>▶ Simulate a hire</strong> button appends the same kind
+              of row for you. Either way, the sheet stays the single source of truth.
             </p>
-            <a
-              href="https://docs.google.com/spreadsheets/d/138TahrgW_LzR5h1nIHXqdPtQNxi8jOeQcPeiQdOdO6w/edit"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ fontSize: 13.5, fontWeight: 600 }}
-            >
-              Open the actual shared sheet ↗
-            </a>
+            <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600 }}>
+              <a
+                href="https://docs.google.com/spreadsheets/d/138TahrgW_LzR5h1nIHXqdPtQNxi8jOeQcPeiQdOdO6w/edit"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open the actual shared sheet ↗
+              </a>
+              <span style={{ color: "var(--muted)", fontWeight: 400 }}> · </span>
+              <Link href="/console/tracker">Simulate a hire in the Tracker →</Link>
+            </p>
           </div>
           <DownArrow />
           <div className="card" style={{ padding: "16px 20px" }}>

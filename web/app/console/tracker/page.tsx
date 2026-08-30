@@ -279,9 +279,13 @@ export default function TrackerPage() {
       {label}
       <span
         aria-hidden
-        style={{ marginLeft: 4, fontSize: 10, color: sort?.key === k ? "var(--accent)" : "var(--border)" }}
+        style={{
+          marginLeft: 4, fontSize: 10,
+          color: sort?.key === k ? "var(--accent)" : "var(--muted)",
+          opacity: sort?.key === k ? 1 : 0.55,
+        }}
       >
-        {sort?.key === k ? (sort.dir === 1 ? "▲" : "▼") : "↕"}
+        {sort?.key === k ? (sort.dir === 1 ? "▲" : "▼") : "▲▼"}
       </span>
     </th>
   );
