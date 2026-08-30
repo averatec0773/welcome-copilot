@@ -70,8 +70,7 @@ export default function HealthPage() {
         </table>
       </div>
       <p style={{ fontSize: 12, color: "var(--muted)" }}>
-        Note: the log records hire_ids only — never names or emails. Data-minimization habit
-        from working near HIPAA-adjacent systems.
+        The log records hire_ids and redacted validation messages — never names or addresses.
       </p>
     </section>
   );

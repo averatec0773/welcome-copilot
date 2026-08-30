@@ -14,8 +14,8 @@ export default function OutboxPage() {
   return (
     <section>
       <p style={{ color: "var(--muted)", fontSize: 13 }}>
-        Every email is archived at the moment it is rendered — what you see here is
-        byte-for-byte what was sent (or drafted in dry-run).
+        Every email is archived at the moment it is rendered — the Log records whether
+        it actually left.
       </p>
       <div className="outbox-grid">
         <div className="card" style={{ padding: 0, maxHeight: 560, overflowY: "auto" }}>
@@ -32,7 +32,9 @@ export default function OutboxPage() {
             >
               <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                 <strong style={{ fontSize: 13 }}>{e.to}</strong>
-                <span className={`badge ${e.mode}`}>{e.mode}</span>
+                <span className={`badge ${e.mode}`}>
+                  {e.mode === "DRY_RUN" ? "DRAFT — not sent" : e.mode}
+                </span>
               </div>
               <div style={{ fontSize: 13, marginTop: 2 }}>{e.subject}</div>
               <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{e.sentAt}</div>

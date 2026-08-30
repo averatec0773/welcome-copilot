@@ -21,6 +21,7 @@ export default function ConsoleLayout({ children }: { children: React.ReactNode 
           Welcome Copilot
         </Link>
         <span style={{ color: "var(--muted)", fontSize: 14 }}>Ops Console — read-only</span>
+        <span className="badge neutral">Demo · fictional data</span>
         <a
           href={SHEET_URL}
           target="_blank"
