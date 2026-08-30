@@ -32,7 +32,7 @@
   .page {
     width: 210mm;
     height: 296mm;
-    padding: 16mm 18mm;
+    padding: 15mm 18mm;
     page-break-after: always;
     position: relative;
     background: #fff;
@@ -40,8 +40,8 @@
   }
   .page:last-child { page-break-after: auto; }
   h1, h2, h3 { font-family: "Playfair Display", Georgia, serif; color: var(--accent-ink); font-weight: 600; }
-  h2 { font-size: 20pt; margin-bottom: 4mm; }
-  h3 { font-size: 13pt; margin: 5mm 0 2mm; }
+  h2 { font-size: 19pt; margin-bottom: 4mm; }
+  h3 { font-size: 12.5pt; margin: 4mm 0 2mm; }
   p { margin-bottom: 2.6mm; }
   a { color: var(--accent); }
   .eyebrow {
@@ -50,9 +50,7 @@
   }
   .muted { color: var(--muted); }
   .small { font-size: 9pt; }
-  .shot {
-    width: 100%; border: 1px solid var(--border); border-radius: 6px; display: block;
-  }
+  .shot { width: 100%; border: 1px solid var(--border); border-radius: 6px; display: block; }
   .shot-note { font-size: 8.5pt; color: var(--muted); margin: 1.5mm 0 4mm; }
   .badge {
     display: inline-block; padding: 0 6px; border-radius: 999px; font-size: 8.5pt;
@@ -62,26 +60,21 @@
   .badge.invalid { background: #fbeae8; color: var(--error); }
   .badge.dup { background: #fdf1e3; color: var(--drafted); }
   table { border-collapse: collapse; width: 100%; font-size: 9.5pt; }
-  th, td { text-align: left; padding: 1.8mm 2.5mm; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th, td { text-align: left; padding: 1.6mm 2.5mm; border-bottom: 1px solid var(--border); vertical-align: top; }
   th { color: var(--muted); font-weight: 600; }
   ul { padding-left: 5mm; margin-bottom: 2.6mm; }
-  li { margin-bottom: 1mm; }
+  li { margin-bottom: 1.2mm; }
   .footer {
     position: absolute; bottom: 8mm; left: 18mm; right: 18mm;
     display: flex; justify-content: space-between;
     font-size: 8pt; color: var(--muted); border-top: 1px solid var(--border); padding-top: 2mm;
   }
-  .callout {
-    background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 6px;
-    padding: 3mm 4mm; margin-bottom: 4mm;
-  }
   .cols { display: flex; gap: 5mm; }
   .cols > div { flex: 1; min-width: 0; }
   .step-label {
     font-size: 8.5pt; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--terra-ink); margin: 4mm 0 1.5mm;
+    color: var(--terra-ink); margin: 3mm 0 1.5mm;
   }
-  /* cover */
   .cover { background: var(--accent-soft); display: flex; flex-direction: column; justify-content: center; }
   .cover h1 { font-size: 38pt; line-height: 1.1; margin: 4mm 0; }
   .cover .rule { width: 34mm; height: 1.2mm; background: var(--terra-ink); border-radius: 1mm; margin: 6mm 0; }
@@ -97,205 +90,169 @@
   <p style="font-size: 13pt; max-width: 150mm;">
     HR tracks hiring in a shared Google Sheet. When a row turns &ldquo;Hired&rdquo;, this system
     sends the welcome email, keeps proof of every send, and alerts a human the moment anything
-    stops working. It is running live right now.
+    stops working. It is running live right now, and this document is a tour of it.
   </p>
   <div class="rule"></div>
   <p style="font-size: 11pt;"><strong>Live demo:</strong> https://welcome-copilot.vercel.app</p>
   <p style="font-size: 11pt;"><strong>Source:</strong> https://github.com/averatec0773/welcome-copilot</p>
   <p class="small muted" style="margin-top: 10mm; max-width: 150mm;">
-    An unofficial demo built by one applicant. All people and policies are fictional, and every
-    recipient address is a + alias of the author&rsquo;s own inbox. Every screenshot in this
-    document is taken from the live system, unedited except for cropping.
+    An unofficial demo. All people and policies are fictional, and every recipient address is a
+    + alias of the author&rsquo;s own inbox. Every screenshot here is taken from the live
+    system, unedited except for cropping.
   </p>
 </div>
 
-<!-- 2 · The task -->
+<!-- 2 · How it works -->
 <div class="page">
-  <p class="eyebrow">The task</p>
-  <h2>The question, and the shape of the answer</h2>
-  <div class="callout">
-    <p style="margin: 0;"><em>&ldquo;Sketch how you would automate the welcome email (tracked in a
-    shared spreadsheet several people edit): what you&rsquo;d use, what could go wrong, and how
-    you&rsquo;d know if it silently stopped working.&rdquo;</em></p>
+  <p class="eyebrow">The idea</p>
+  <h2>How it works</h2>
+  <img class="shot" src="shots/01-landing-diagram.png" alt="Pipeline diagram from the landing page">
+  <p class="shot-note">The landing page, live. Two ways in (edit the sheet, or press Simulate), one pipeline, and a watchdog layer underneath. Every chip links to the console page where that stage is visible.</p>
+  <div class="cols">
+    <div>
+      <h3>Things that go wrong, on purpose</h3>
+      <ul class="small">
+        <li>A typo&rsquo;d address → <span class="badge invalid">INVALID</span>, no email leaves.</li>
+        <li>The same person twice → <span class="badge dup">DUPLICATE</span>, only the first row may send.</li>
+        <li>A re-sorted sheet mid-run → writes are keyed by hire ID, so results land on the right person.</li>
+        <li>A crash mid-send → a SENDING marker waits for a human. Never auto-retried into a double send.</li>
+      </ul>
+      <p class="small muted">Two of these are permanently staged in the live sheet, so the guards are always on display.</p>
+    </div>
+    <div>
+      <h3>How you&rsquo;d hear about it</h3>
+      <table>
+        <tr><th>Alarm</th><th>Catches</th></tr>
+        <tr><td>Instant alert emails</td><td>Errors the pipeline can see</td></tr>
+        <tr><td>Dead-man&rsquo;s switch</td><td>Silence itself: dead trigger, revoked auth</td></tr>
+        <tr><td>Daily digest</td><td>The slow drift a human should read about</td></tr>
+      </table>
+      <p class="small muted" style="margin-top: 2mm;">The digest signs off with: &ldquo;No news from me tomorrow would itself be a signal.&rdquo;</p>
+    </div>
   </div>
-  <p>
-    Instead of a one-page sketch, this is a working system. The written sketch still exists
-    (<code>docs/sketch.md</code> in the repo), but every claim in it can be checked against a
-    live deployment.
-  </p>
-  <h3>What it uses</h3>
-  <p>
-    Google Apps Script bound to the team&rsquo;s existing shared Sheet, on a 5-minute trigger.
-    No new tool for HR to learn: the spreadsheet stays the source of truth, and the automation
-    works around how the team already works. A small Next.js console on Vercel gives everyone a
-    read-only window into the pipeline, plus a Claude-backed assistant that answers new-hire
-    questions from the onboarding handbook.
-  </p>
-  <h3>What could go wrong, by design</h3>
-  <ul>
-    <li>A typo&rsquo;d email address → the row is marked <span class="badge invalid">INVALID</span> before any email leaves.</li>
-    <li>The same person pasted twice → the second row is marked <span class="badge dup">DUPLICATE</span>; only the first may ever send.</li>
-    <li>A re-sorted sheet mid-run → every write is keyed by hire ID, not row position, so results land on the right person.</li>
-    <li>A crash between &ldquo;sending&rdquo; and &ldquo;sent&rdquo; → a SENDING marker stays visible for a human to review; it is never auto-retried into a double send.</li>
-    <li>Gmail&rsquo;s daily quota running out → the pipeline holds sends and says so, rather than failing quietly.</li>
-  </ul>
-  <h3>How you&rsquo;d know it silently stopped</h3>
-  <p>
-    Three independent alarms: instant error emails to the operator, a dead-man&rsquo;s switch
-    (healthchecks.io) that alerts on <em>silence</em> rather than on errors, and a daily digest
-    with the bottom line. The failures that cannot report themselves are exactly what the
-    dead-man&rsquo;s switch exists for.
-  </p>
   <div class="footer"><span>Welcome Copilot · Walkthrough</span><span>2</span></div>
 </div>
 
-<!-- 3 · Architecture -->
-<div class="page">
-  <p class="eyebrow">Architecture</p>
-  <h2>Three lanes: the team, the pipeline, the watchdogs</h2>
-  <img class="shot" src="shots/01-landing-diagram.png" alt="Pipeline diagram from the landing page">
-  <p class="shot-note">The landing page walks a visitor through the same three lanes. Each chip links to the console page where that stage is visible.</p>
-  <table>
-    <tr><th>Component</th><th>Job</th></tr>
-    <tr><td>Google Sheets (shared)</td><td>Source of truth. HR edits it directly; the pipeline writes results back into it.</td></tr>
-    <tr><td>Google Apps Script</td><td>The pipeline: validate, render, archive, send, every 5 minutes under a script lock.</td></tr>
-    <tr><td>Gmail</td><td>Delivery. Every send is archived to an Outbox tab before it leaves.</td></tr>
-    <tr><td>Next.js on Vercel</td><td>Read-only console over the live sheet, plus the gated Simulate write path.</td></tr>
-    <tr><td>Claude (Haiku)</td><td>The onboarding assistant: retrieval over 9 handbook docs, citations, honest refusals.</td></tr>
-    <tr><td>Upstash Redis</td><td>Rate limits, every one of them shown to the visitor with a live remaining count.</td></tr>
-    <tr><td>healthchecks.io</td><td>Dead-man&rsquo;s switch: the pipeline pings it every run; silence raises an alert.</td></tr>
-  </table>
-  <div class="footer"><span>Welcome Copilot · Walkthrough</span><span>3</span></div>
-</div>
-
-<!-- 4 · Tracker + sheet -->
+<!-- 3 · The sheet & tracker -->
 <div class="page">
   <p class="eyebrow">The console · 1 of 3</p>
   <h2>The Tracker is the sheet, live</h2>
   <img class="shot" src="shots/02-sheet.png" alt="The actual shared Google Sheet">
-  <p class="shot-note">The actual shared Sheet, publicly viewable. Script-managed columns (welcome_sent_at, status, error) sit beside HR&rsquo;s own columns. Rows H-0005 and H-0011 are broken on purpose so both guards stay visible.</p>
+  <p class="shot-note">The actual shared Sheet, publicly viewable. HR&rsquo;s columns on the left, the pipeline&rsquo;s results (welcome_sent_at, status, error) written back beside them. The demo rows at the bottom were all created by visitors pressing one button.</p>
   <img class="shot" src="shots/03-tracker.png" alt="The Tracker console page">
-  <p class="shot-note">The console reads the same sheet. One line of legend, then the data. Any row expands into the full candidate story: applied, interviewed, offer, start, notes, and what the pipeline did about it.</p>
-  <div class="footer"><span>Welcome Copilot · Walkthrough</span><span>4</span></div>
+  <p class="shot-note">The console reads the same sheet. Every column sorts on click, every row expands into the full candidate story, and the two deliberately broken rows (H-0005, H-0011) keep the guards visible.</p>
+  <div class="footer"><span>Welcome Copilot · Walkthrough</span><span>3</span></div>
 </div>
 
-<!-- 5 · Outbox + Operator Inbox + Health -->
+<!-- 4 · Receipts -->
 <div class="page">
   <p class="eyebrow">The console · 2 of 3</p>
-  <h2>Proof of every send, and a pipeline that reports to its operator</h2>
+  <h2>Receipts for everything</h2>
   <img class="shot" src="shots/04-outbox.png" alt="Outbox page">
-  <p class="shot-note">The Outbox: every email archived at the moment it was rendered, before the send. What you read here is exactly what the recipient got.</p>
+  <p class="shot-note">The Outbox: every email archived at the moment it was rendered, before the send, so even a failed send leaves evidence. What you read here is exactly what the recipient got.</p>
   <div class="cols">
     <div>
       <img class="shot" src="shots/05-opsinbox.png" alt="Operator inbox page">
-      <p class="shot-note">The Operator Inbox: the alert and digest emails the pipeline sends its human.</p>
+      <p class="shot-note">The Operator Inbox: the alerts and daily digests the pipeline mails its human.</p>
     </div>
     <div>
       <img class="shot" src="shots/06-health.png" alt="Health page">
       <p class="shot-note">Health: last run, mode, mail quota, the dead-man&rsquo;s switch badge, and a plain-English run log.</p>
     </div>
   </div>
+  <div class="footer"><span>Welcome Copilot · Walkthrough</span><span>4</span></div>
+</div>
+
+<!-- 5 · Assistant -->
+<div class="page">
+  <p class="eyebrow">The console · 3 of 3</p>
+  <h2>An assistant that shows its homework</h2>
+  <img class="shot" src="shots/10-assistant-cited.png" alt="Assistant with citations and cited docs highlighted">
+  <p class="shot-note">Every answer carries numbered citations, and the docs it drew from light up in the handbook rail: &ldquo;cited in the last answer&rdquo;.</p>
+  <div class="cols">
+    <div>
+      <img class="shot" src="shots/13-handbook-doc.png" alt="A handbook doc opened in the console">
+      <p class="shot-note">Click any doc in the rail and read the source on the spot, so an answer can be checked, not just believed.</p>
+    </div>
+    <div>
+      <img class="shot" src="shots/11-assistant-refusal.png" alt="Assistant refusing an out-of-scope question">
+      <p class="shot-note">Asked for the office wifi password: not in the handbook, so it says so and points to a human. No guessing.</p>
+      <p class="small muted" style="margin-top: 3mm;">The four suggested questions are open to everyone (cached answers, zero cost). Free-form questions run live through Claude and need the access code. Limits are shown, never silent: 8 a minute per visitor, 300 a day for the whole demo.</p>
+    </div>
+  </div>
   <div class="footer"><span>Welcome Copilot · Walkthrough</span><span>5</span></div>
 </div>
 
-<!-- 6 · Assistant -->
-<div class="page">
-  <p class="eyebrow">The console · 3 of 3</p>
-  <h2>An assistant that cites its sources, and admits what it doesn&rsquo;t know</h2>
-  <img class="shot" src="shots/10-assistant-cited.png" alt="Assistant with citations">
-  <p class="shot-note">Every answer carries numbered citations, and the handbook docs it drew from light up in the right rail. A reader can open the doc and check the answer against the source on the spot.</p>
-  <img class="shot" src="shots/11-assistant-refusal.png" alt="Assistant refusing out-of-scope question">
-  <p class="shot-note">Asked something the handbook doesn&rsquo;t cover, it says so and points to a human instead of guessing.</p>
-  <div class="footer"><span>Welcome Copilot · Walkthrough</span><span>6</span></div>
-</div>
-
-<!-- 7 · A hire end to end, part 1 -->
+<!-- 6 · Press the button -->
 <div class="page">
   <p class="eyebrow">One hire, end to end · 1 of 2</p>
-  <h2>Press the button, watch the real pipeline run</h2>
+  <h2>Press the button</h2>
   <p>
-    The console&rsquo;s only write path: Simulate appends a genuine row to the shared sheet,
-    exactly like HR marking someone Hired, then nudges the pipeline. Everything that follows is
-    the same code path a real hire gets. Every screenshot on these two pages comes from real
-    runs made while writing this document.
+    Simulate appends a genuine row to the shared sheet, exactly like HR marking someone Hired,
+    then triggers the pipeline immediately. The form says out loud what will happen: the typed
+    name lands on the public sheet (so make one up), the email goes to an alias, and your own
+    address never appears anywhere public. About thirty seconds later there is a
+    <span class="badge sent">SENT</span> badge and the actual email, previewed in place.
   </p>
   <div class="cols">
     <div>
-      <p class="step-label">Step 1 · The form (limits shown, never silent)</p>
-      <img class="shot" src="shots/07-simulate-form.png" alt="Simulate form">
+      <p class="step-label">Step 1 · Fill in a name</p>
+      <img class="shot" src="shots/07-simulate-form.png" alt="Simulate form with limits shown">
     </div>
     <div>
-      <p class="step-label">Step 2 · Row appended, pipeline runs, email rendered</p>
-      <img class="shot" src="shots/08-simulate-result.png" alt="Simulate result with SENT status and email preview">
+      <p class="step-label">Step 2 · Row 26, sent, previewed</p>
+      <img class="shot" src="shots/08-simulate-result.png" alt="Simulate result with SENT and email preview">
     </div>
   </div>
+  <p class="small muted">
+    Names work in any language: this demo has greeted a Maya, a Scott, and an Éloïse today.
+    Live remaining counts sit under the form, because a limit someone discovers by silently
+    failing is treated as a bug.
+  </p>
+  <div class="footer"><span>Welcome Copilot · Walkthrough</span><span>6</span></div>
+</div>
+
+<!-- 7 · Thirty seconds later -->
+<div class="page">
+  <p class="eyebrow">One hire, end to end · 2 of 2</p>
+  <h2>…and here it is, everywhere it should be</h2>
+  <p class="step-label">In the tracker, expanded: the full candidate story</p>
+  <img class="shot" src="shots/09-tracker-row.png" alt="Maya's row expanded in the tracker">
+  <p class="step-label">In a real Gmail inbox, disclaimer included</p>
+  <img class="shot" src="shots/12-gmail.png" alt="The welcome email delivered to Gmail">
+  <p class="shot-note">Delivered to the + alias (see the search bar), greeting the chosen name, with a footer that says exactly what this is: a demonstration, fictional people, no real onboarding. Demo rows are archived automatically after 7 days.</p>
   <div class="footer"><span>Welcome Copilot · Walkthrough</span><span>7</span></div>
 </div>
 
-<!-- 8 · A hire end to end, part 2 -->
+<!-- 8 · Close -->
 <div class="page">
-  <p class="eyebrow">One hire, end to end · 2 of 2</p>
-  <h2>The row in the sheet, the email in a real inbox</h2>
-  <p class="step-label">Step 3 · The same row, in the actual shared sheet</p>
-  <img class="shot" src="shots/09-tracker-row.png" alt="New row in tracker with candidate detail">
-  <p class="step-label">Step 4 · The email, delivered to a real Gmail inbox</p>
-  <img class="shot" src="shots/12-gmail.png" alt="The welcome email in Gmail">
-  <p class="shot-note">Recipient addresses are + aliases of the author&rsquo;s own inbox, so the demo sends real email without ever emailing a stranger. Demo rows are tagged, counted separately in the daily digest, and archived automatically after 7 days.</p>
-  <div class="footer"><span>Welcome Copilot · Walkthrough</span><span>8</span></div>
-</div>
-
-<!-- 9 · Reliability -->
-<div class="page">
-  <p class="eyebrow">Reliability</p>
-  <h2>Why it never sends twice, and never fails quietly</h2>
-  <h3>The invariants</h3>
+  <p class="eyebrow">Worth knowing</p>
+  <h2>The parts you can&rsquo;t screenshot</h2>
   <ul>
-    <li><strong>Idempotent by record, not by memory.</strong> The sheet itself records every send. A row with a welcome_sent_at timestamp will never send again, whatever else happens.</li>
-    <li><strong>At-most-once sending.</strong> A SENDING marker is written and flushed before Gmail is called. If the script dies mid-send, the marker stays for a human; it is never auto-retried.</li>
-    <li><strong>Writes keyed by hire ID.</strong> Every write-back verifies the row still holds the same hire ID, so a re-sorted sheet cannot misdirect a result.</li>
-    <li><strong>Fail closed.</strong> Anything other than an explicit dry_run = FALSE means rehearsal mode: drafts, not sends.</li>
-  </ul>
-  <h3>The three alarms</h3>
-  <table>
-    <tr><th>Alarm</th><th>Catches</th><th>Latency</th></tr>
-    <tr><td>Instant alert emails</td><td>Errors the pipeline can see and report</td><td>Immediate</td></tr>
-    <tr><td>Dead-man&rsquo;s switch</td><td>Silence: a disabled trigger, revoked auth, a dead script</td><td>Minutes</td></tr>
-    <tr><td>Daily digest</td><td>The slow drift a human should read about</td><td>Daily, 8:00</td></tr>
-  </table>
-  <p style="margin-top: 3mm;" class="small muted">
-    The digest&rsquo;s closing line: &ldquo;No news from me tomorrow would itself be a signal.
-    Check the triggers.&rdquo;
-  </p>
-  <h3>Limits, all of them visible</h3>
-  <p>
-    Every rate limit in the demo shows the visitor a live remaining count before they hit it:
-    simulations per visitor and demo-wide, assistant questions per minute and per day. A limit
-    someone discovers by silently failing is treated as a bug.
-  </p>
-  <div class="footer"><span>Welcome Copilot · Walkthrough</span><span>9</span></div>
-</div>
-
-<!-- 10 · Close -->
-<div class="page">
-  <p class="eyebrow">What&rsquo;s next</p>
-  <h2>Where this would go inside Mentella</h2>
-  <ul>
-    <li><strong>First:</strong> point the same pipeline at the real hiring tracker behind a dry-run flag, and let it draft (not send) for a week while the team reads the Outbox.</li>
-    <li><strong>Then:</strong> extend the pattern to the other spreadsheet-tracked handoffs around onboarding: credentialing checklists, IT provisioning, first-week reminders.</li>
-    <li><strong>Where systems have no API</strong> (several core clinical and billing systems don&rsquo;t): treat the scheduled manual export as the interface, validate it loudly, and report on it. A working slice of that approach ships in this demo&rsquo;s repo.</li>
-    <li><strong>The assistant grows with the handbook.</strong> It only ever answers from documents the team controls, with citations, so growing it is writing docs, not training a model.</li>
+    <li><strong>It never sends twice.</strong> The sheet itself records every send, keyed by hire ID rather than row position. Re-sort it, edit it, crash mid-run: a row that sent once stays sent.</li>
+    <li><strong>It fails closed.</strong> Anything other than an explicit dry_run = FALSE means rehearsal mode: drafts, not sends.</li>
+    <li><strong>Every limit is visible.</strong> Simulations, assistant questions, mail quota: all shown with live remaining counts before anyone hits them.</li>
+    <li><strong>The assistant only knows the handbook.</strong> Growing it means writing docs the team controls, not training a model.</li>
+    <li><strong>Everything in this document is live.</strong> The sheet, the console, the emails, the badge: open the demo and press the same buttons.</li>
   </ul>
   <h3>Try it yourself</h3>
   <p>
-    Open <strong>https://welcome-copilot.vercel.app</strong>, click through the console, and ask
-    the assistant one of the suggested questions. With the access code, press
+    Open <strong>https://welcome-copilot.vercel.app</strong> and click around; the console and
+    the suggested questions are open to everyone. With the access code, press
     <strong>▶ Simulate a hire</strong> and watch a real email go out in about thirty seconds.
+  </p>
+  <h3>Where it would go next</h3>
+  <p class="small">
+    Point the same pipeline at the real tracker behind a dry-run flag for a week, then extend
+    the pattern to the other spreadsheet-shaped handoffs around onboarding. Where a system has
+    no API (several core clinical and billing systems don&rsquo;t), treat the scheduled export
+    as the interface and validate it loudly; a working slice of that ships in this repo too.
   </p>
   <p class="small muted" style="margin-top: 8mm;">
     Built with Google Apps Script, Next.js, Claude, and a healthy fear of silent failures.<br>
     Unofficial demo for an application to Mentella Health. All data fictional.
   </p>
-  <div class="footer"><span>Welcome Copilot · Walkthrough</span><span>10</span></div>
+  <div class="footer"><span>Welcome Copilot · Walkthrough</span><span>8</span></div>
 </div>
 
 </body>
