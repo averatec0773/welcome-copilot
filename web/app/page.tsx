@@ -1,12 +1,47 @@
 import Link from "next/link";
 
-const STEPS = [
-  "HR marks a row “Hired”",
-  "A trigger fires within 5 min",
-  "Validate the row, render the email",
-  "Archive it, then send it",
-  "A heartbeat confirms the run",
+const PIPELINE_STAGES = ["validate", "render", "archive", "send", "SENT written back"];
+
+const WATCHDOGS = [
+  { label: "Instant alerts", where: "Operator Inbox", href: "/console/opsinbox" },
+  { label: "Dead man's switch", where: "Health", href: "/console/health" },
+  { label: "Daily digest", where: "Operator Inbox", href: "/console/opsinbox" },
 ];
+
+function LaneLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      style={{
+        margin: "0 0 10px", fontSize: 12, fontWeight: 700, letterSpacing: "0.12em",
+        textTransform: "uppercase", color: "var(--terra-ink)",
+      }}
+    >
+      {children}
+    </p>
+  );
+}
+
+function StageChip({ children, strong }: { children: React.ReactNode; strong?: boolean }) {
+  return (
+    <span
+      style={{
+        padding: "6px 12px", borderRadius: 999, border: "1px solid var(--border)",
+        background: "var(--surface)", fontSize: 13.5, whiteSpace: "nowrap",
+        fontWeight: strong ? 700 : 400,
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function DownArrow() {
+  return (
+    <div aria-hidden style={{ textAlign: "center", color: "var(--muted)", fontSize: 18, lineHeight: 1, margin: "8px 0" }}>
+      ↓
+    </div>
+  );
+}
 
 const CARDS = [
   {
@@ -77,48 +112,73 @@ export default function Home() {
 
       <section className="container" style={{ padding: "56px 24px" }}>
         <h2 style={{ textAlign: "center", marginBottom: 24 }}>How it works</h2>
-        <div
-          style={{
-            display: "flex", flexWrap: "wrap", alignItems: "stretch", justifyContent: "center", gap: 12,
-          }}
-        >
-          {/* The arrow LEADS its step rather than trailing it. When the strip
-              wraps, a wrapped step carries its arrow down to the new line,
-              so no row ever ends with an arrow pointing at nothing. */}
-          {STEPS.map((step, i) => (
-            <div key={step} style={{ display: "flex", alignItems: "stretch", gap: 12 }}>
-              {i > 0 && (
-                <span
-                  className="hide-sm"
-                  style={{ color: "var(--muted)", fontSize: 18, alignSelf: "center" }}
-                >
-                  &rarr;
+        <div style={{ maxWidth: 860, margin: "0 auto" }}>
+          <div className="card" style={{ padding: "16px 20px" }}>
+            <LaneLabel>1 · The team</LaneLabel>
+            <p style={{ margin: "0 0 10px", fontSize: 15 }}>
+              HR marks a row &ldquo;Hired&rdquo; in the shared Google Sheet, the same tracker
+              the team already edits. The sheet stays the source of truth; nobody learns a new
+              tool.
+            </p>
+            <a
+              href="https://docs.google.com/spreadsheets/d/138TahrgW_LzR5h1nIHXqdPtQNxi8jOeQcPeiQdOdO6w/edit"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: 13.5, fontWeight: 600 }}
+            >
+              Open the actual shared sheet ↗
+            </a>
+          </div>
+          <DownArrow />
+          <div className="card" style={{ padding: "16px 20px" }}>
+            <LaneLabel>2 · The pipeline, every 5 minutes</LaneLabel>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+              {/* The arrow LEADS its chip: a wrapped chip carries its arrow to
+                  the new line, so no row ends with an arrow pointing at nothing. */}
+              {PIPELINE_STAGES.map((s, i) => (
+                <span key={s} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {i > 0 && (
+                    <span className="hide-sm" style={{ color: "var(--muted)" }}>&rarr;</span>
+                  )}
+                  <StageChip strong={i === PIPELINE_STAGES.length - 1}>{s}</StageChip>
                 </span>
-              )}
-              <div
-                className="card"
-                style={{
-                  padding: "12px 14px", fontSize: 13.5, textAlign: "center", maxWidth: 170,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}
-              >
-                {step}
-              </div>
+              ))}
             </div>
-          ))}
+            <p style={{ margin: "12px 0 0", fontSize: 13.5, color: "var(--muted)" }}>
+              Bad data becomes <span className="badge INVALID">INVALID</span>, the same person
+              twice becomes <span className="badge DUPLICATE">DUPLICATE</span>. Neither sends an
+              email.
+            </p>
+            <p style={{ margin: "10px 0 0", fontSize: 13.5, fontWeight: 600 }}>
+              <Link href="/console/tracker">Watch it live in the Tracker →</Link>
+              <span style={{ color: "var(--muted)", fontWeight: 400 }}> · </span>
+              <Link href="/console/outbox">Read every email in the Outbox →</Link>
+            </p>
+          </div>
+          <DownArrow />
+          <div className="card" style={{ padding: "16px 20px", background: "var(--accent-soft)" }}>
+            <LaneLabel>3 · The watchdogs</LaneLabel>
+            <p style={{ margin: "0 0 10px", fontSize: 15 }}>
+              If everything above goes silent, this layer notices and emails a human.
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {WATCHDOGS.map((w) => (
+                <Link
+                  key={`${w.label}-${w.href}`}
+                  href={w.href}
+                  style={{
+                    padding: "6px 12px", borderRadius: 999, border: "1px solid var(--accent)",
+                    background: "var(--surface)", fontSize: 13.5, fontWeight: 600,
+                    color: "var(--accent)", textDecoration: "none", whiteSpace: "nowrap",
+                  }}
+                >
+                  {w.label} · {w.where}
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
         <p style={{ textAlign: "center", color: "var(--muted)", fontSize: 15, marginTop: 24 }}>
-          The spreadsheet stays the source of truth. The automation fits around how the team
-          already works.{" "}
-          <a
-            href="https://docs.google.com/spreadsheets/d/138TahrgW_LzR5h1nIHXqdPtQNxi8jOeQcPeiQdOdO6w/edit"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Open the actual shared Google Sheet ↗
-          </a>
-        </p>
-        <p style={{ textAlign: "center", color: "var(--muted)", fontSize: 15, marginTop: 8 }}>
           To watch it run end to end, open the Tracker and press{" "}
           <strong>▶ Simulate a hire</strong> (access code required). It appends a real row, and a
           real email goes out.
