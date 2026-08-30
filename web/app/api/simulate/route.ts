@@ -152,7 +152,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const sheetLink = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=0&range=A${appendedRow}`;
+  // The Tracker tab's real gid. gid=0 is a leftover empty "Sheet1", so a
+  // gid=0 deep link would open a blank tab instead of the visitor's row.
+  const sheetLink = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=365658979&range=A${appendedRow}`;
 
   audit("simulate", req, { name, alias, visitorEmail: visitorEmail ?? "" });
 
