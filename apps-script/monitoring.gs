@@ -73,7 +73,10 @@ function dailyDigest() {
     '',
     'No news from me tomorrow would itself be a signal — check the triggers.',
   ].join('\n');
-  alertAdmin('Daily digest', body);
+  // Send directly (not via alertAdmin) so the inbox gets one DIGEST row, not
+  // an extra ALERT row for the same email.
+  const admin = props_().getProperty('ADMIN_EMAIL');
+  if (admin) MailApp.sendEmail(admin, '[welcome-copilot] Daily digest', body);
   try {
     opsInbox_().appendRow([new Date(), 'DIGEST', 'Daily digest', body]);
   } catch (e) {
