@@ -9,7 +9,6 @@ export const MANAGER = "Luis Herrera";
 export const DEMO_BACKLOG_LIMIT = 5;
 export const QUOTA_FLOOR = 20;
 
-const FIRST_NAME_RE = /^[A-Za-z]{1,20}$/;
 // Same basic shape as apps-script/validation.gs's EMAIL_RE — kept in sync deliberately.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -17,9 +16,20 @@ function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-export function sanitizeFirstName(input: string | undefined | null): string {
+// The visitor's own word goes into the email greeting, so extract rather than
+// reject: take the first word, keep letters plus internal hyphens/apostrophes
+// (D'Angelo, Anne-Marie), cap at 20 chars. Empty input gets a random preset
+// name, as the form promises. Non-empty input that yields nothing usable
+// returns null so the route can say so — never silently greet a stranger's
+// name in an email the visitor may receive themselves.
+export function sanitizeFirstName(input: string | undefined | null): string | null {
   const trimmed = (input ?? "").trim();
-  return FIRST_NAME_RE.test(trimmed) ? trimmed : pick(FIRST_NAMES);
+  if (!trimmed) return pick(FIRST_NAMES);
+  const token = (trimmed.split(/\s+/)[0] ?? "")
+    .replace(/[^A-Za-z'-]/g, "")
+    .replace(/^['-]+|['-]+$/g, "")
+    .slice(0, 20);
+  return /^[A-Za-z][A-Za-z'-]*$/.test(token) ? token : null;
 }
 
 export function isValidEmail(input: string | undefined | null): boolean {
@@ -54,14 +64,15 @@ function isoDateOffset(days: number): string {
 
 export type SimulateRow = { row: (string | boolean)[]; name: string; alias: string };
 
-// Builds the 16-column Tracker row (A..P) for a simulated hire. hire_id (A),
-// welcome_sent_at (I), welcome_status (J), and error_detail (K) start blank —
-// the real pipeline owns those from here on. name (B) is just the sanitized
-// first name — no "Demo " prefix — so the welcome email (which greets the
-// row's first word) greets the chosen name correctly; demo rows stay
-// identifiable via is_demo (L) / the tracker's 🧪 marker instead.
-export function buildSimulateRow(firstNameInput: string | undefined | null): SimulateRow {
-  const firstName = sanitizeFirstName(firstNameInput);
+// Builds the 16-column Tracker row (A..P) for a simulated hire. Takes an
+// already-sanitized first name (see sanitizeFirstName — the route rejects
+// null before calling this). hire_id (A), welcome_sent_at (I),
+// welcome_status (J), and error_detail (K) start blank — the real pipeline
+// owns those from here on. name (B) is just the first name — no "Demo "
+// prefix — so the welcome email (which greets the row's first word) greets
+// the chosen name correctly; demo rows stay identifiable via is_demo (L) /
+// the tracker's 🧪 marker instead.
+export function buildSimulateRow(firstName: string): SimulateRow {
   const alias = buildAliasEmail(randomAliasHex());
   const name = firstName;
   const start = new Date();

@@ -1,31 +1,43 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildSimulateRow, countPendingDemoRows, isQuotaLow, isValidEmail,
+  buildSimulateRow, countPendingDemoRows, isQuotaLow, isValidEmail, sanitizeFirstName,
   LICENSES, STATES, MANAGER, FIRST_NAMES,
 } from "@/lib/simulate";
 import type { Hire } from "@/lib/sheets";
 
-describe("sanitizeFirstName (via buildSimulateRow)", () => {
+describe("sanitizeFirstName", () => {
   it("keeps a valid first name as-is", () => {
-    const { name } = buildSimulateRow("Riley");
-    expect(name).toBe("Riley");
+    expect(sanitizeFirstName("Riley")).toBe("Riley");
   });
 
-  it("falls back to a random preset name for empty/missing input", () => {
-    const { name } = buildSimulateRow(undefined);
-    expect(FIRST_NAMES).toContain(name);
-  });
-
-  it("falls back to a random preset name for input with digits, symbols, or spaces", () => {
-    for (const bad of ["Ri1ey", "Ri ley", "Riley!", "a".repeat(21)]) {
-      const { name } = buildSimulateRow(bad);
-      expect(FIRST_NAMES).toContain(name);
+  it("falls back to a random preset name only for empty/missing input", () => {
+    for (const empty of [undefined, null, "", "   "]) {
+      expect(FIRST_NAMES).toContain(sanitizeFirstName(empty));
     }
   });
 
-  it("accepts a 20-character all-letter name and rejects a 21-character one", () => {
-    const ok = "a".repeat(20);
-    expect(buildSimulateRow(ok).name).toBe(ok);
+  it("takes the first word of a multi-word name instead of substituting a random one", () => {
+    // Regression: "Scott H" used to fail the letters-only regex and silently
+    // become a random preset name in the email greeting.
+    expect(sanitizeFirstName("Scott H")).toBe("Scott");
+    expect(sanitizeFirstName("  Anne-Marie Lu ")).toBe("Anne-Marie");
+  });
+
+  it("strips stray digits/symbols and keeps internal apostrophes and hyphens", () => {
+    expect(sanitizeFirstName("Riley!")).toBe("Riley");
+    expect(sanitizeFirstName("Ri1ey")).toBe("Riey");
+    expect(sanitizeFirstName("D'Angelo")).toBe("D'Angelo");
+    expect(sanitizeFirstName("-Riley-")).toBe("Riley");
+  });
+
+  it("caps at 20 characters", () => {
+    expect(sanitizeFirstName("a".repeat(21))).toBe("a".repeat(20));
+  });
+
+  it("returns null (never a substitute) when non-empty input has no usable letters", () => {
+    for (const junk of ["123", "!!!", "'-'", "@@@"]) {
+      expect(sanitizeFirstName(junk)).toBeNull();
+    }
   });
 });
 

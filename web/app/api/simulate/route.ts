@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { ACCESS_COOKIE, hasAccess } from "@/lib/access";
 import { audit } from "@/lib/audit";
 import { clientIp, getLimiters } from "@/lib/ratelimit";
 import { appendTrackerRow, mapConfig, mapTrackerRows, readRange } from "@/lib/sheets";
-import { buildSimulateRow, countPendingDemoRows, isQuotaLow, isValidEmail } from "@/lib/simulate";
+import { buildSimulateRow, countPendingDemoRows, isQuotaLow, isValidEmail, sanitizeFirstName } from "@/lib/simulate";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -66,6 +66,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "locked" }, { status: 401 });
   }
 
+  // Before the limiters, so a typo doesn't burn a rate-limit token.
+  const firstName = sanitizeFirstName(body.firstName);
+  if (firstName === null) {
+    return NextResponse.json({ error: "invalid_name" }, { status: 400 });
+  }
+
   const ip = clientIp(req);
 
   let ipRes;
@@ -119,7 +125,7 @@ export async function POST(req: NextRequest) {
   }
 
   const visitorEmail = isValidEmail(body.visitorEmail) ? String(body.visitorEmail).trim() : undefined;
-  const { row, name, alias } = buildSimulateRow(body.firstName);
+  const { row, name, alias } = buildSimulateRow(firstName);
 
   let appendedRow: number;
   try {
@@ -129,31 +135,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "append_failed" }, { status: 502 });
   }
 
-  // Immediate trigger — the 5-minute Apps Script trigger picks this row up
-  // regardless, so a failed poke never blocks the response, but the promise
-  // to the visitor is "about thirty seconds", so a transient failure gets one
-  // retry instead of silently demoting them to the timer. The webhook runs
-  // the whole pipeline synchronously, so each attempt gets real headroom, and
-  // a duplicate poke is safe: the pipeline is idempotent per row.
-  let poked = false;
+  // Immediate trigger, fired after the response so the visitor sees their row
+  // land in about two seconds instead of waiting out the synchronous pipeline
+  // run. The webhook runs the whole pipeline (usually 10-20s); a transient
+  // failure gets one retry, and a duplicate poke is safe because the pipeline
+  // is idempotent per row. If both attempts fail, the 5-minute Apps Script
+  // trigger picks the row up regardless; the panel's polling surfaces
+  // whichever path happened.
   const webhookUrl = process.env.GAS_WEBHOOK_URL;
   if (webhookUrl) {
-    for (let attempt = 1; attempt <= 2 && !poked; attempt++) {
-      try {
-        const res = await fetch(webhookUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: process.env.SIMULATE_TOKEN ?? "", alias, visitorEmail }),
-          signal: AbortSignal.timeout(22000),
-        });
-        if (res.ok) {
-          const j = await res.json().catch(() => null);
-          poked = j?.ok === true;
+    after(async () => {
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const res = await fetch(webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: process.env.SIMULATE_TOKEN ?? "", alias, visitorEmail }),
+            signal: AbortSignal.timeout(22000),
+          });
+          if (res.ok) {
+            const j = await res.json().catch(() => null);
+            if (j?.ok === true) return;
+          }
+        } catch (e) {
+          console.error(`webhook poke attempt ${attempt} failed:`, e);
         }
-      } catch (e) {
-        console.error(`webhook poke attempt ${attempt} failed:`, e);
       }
-    }
+      console.error("webhook poke failed after retries; the 5-minute trigger will pick the row up");
+    });
   }
 
   // The Tracker tab's real gid. gid=0 is a leftover empty "Sheet1", so a
@@ -162,5 +171,5 @@ export async function POST(req: NextRequest) {
 
   audit("simulate", req, { name, alias, visitorEmail: visitorEmail ?? "" });
 
-  return NextResponse.json({ alias, name, row: appendedRow, sheetLink, poked });
+  return NextResponse.json({ alias, name, row: appendedRow, sheetLink });
 }

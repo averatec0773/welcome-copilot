@@ -8,7 +8,7 @@ import type { Hire, OutboxEmail } from "@/lib/sheets";
 import { Explain } from "./Explain";
 import { useUnlock } from "./UnlockContext";
 
-type SimulateResult = { alias: string; name: string; row: number; sheetLink: string; poked: boolean };
+type SimulateResult = { alias: string; name: string; row: number; sheetLink: string };
 type SimulateStatus = {
   unlocked: boolean;
   ipRemaining: number | null;
@@ -22,6 +22,7 @@ type SimulateStatus = {
 
 const ERROR_MESSAGES: Record<string, string> = {
   locked: "This needs an access code. Enter it in the console header.",
+  invalid_name: "Names use letters only (the first word is what gets greeted). Try something like Riley.",
   rate_limited: "Rate limited. Each visitor can simulate 10 times an hour, and the whole demo 3 times per 10 minutes. Try again in a bit.",
   limiter_unavailable: "The rate limiter is unavailable right now. Try again in a moment.",
   demo_backlog: "There are already several demo hires mid-pipeline. Give them a few minutes to finish, then retry.",
@@ -48,7 +49,7 @@ function resetNote(s: SimulateStatus | null): string {
   return mins > 0 ? ` (resets in ~${mins} min)` : "";
 }
 
-const MAX_POLL_ATTEMPTS = 36; // 36 × 10s ≈ 6 minutes
+const MAX_POLL_ATTEMPTS = 90; // 90 × 4s ≈ 6 minutes
 
 const EXPLAIN_PROPS = {
   title: "Trigger the real pipeline yourself",
@@ -115,7 +116,10 @@ export default function SimulatePanel() {
         return;
       }
       try {
-        const tRes = await fetch("/api/tracker");
+        // Cache-busting query: /api/tracker is CDN-cached for 30s, which is
+        // fine for the passive console pages but would make this live status
+        // lag half a minute behind the actual send.
+        const tRes = await fetch(`/api/tracker?live=${Date.now()}`);
         const tJson = await tRes.json();
         const hires: Hire[] = tJson.hires ?? [];
         const found = hires.find((h) => h.email.toLowerCase() === result!.alias.toLowerCase());
@@ -126,7 +130,7 @@ export default function SimulatePanel() {
           return;
         }
         if (found?.welcomeStatus === "SENT") {
-          const oRes = await fetch("/api/outbox");
+          const oRes = await fetch(`/api/outbox?live=${Date.now()}`);
           const oJson = await oRes.json();
           const emails: OutboxEmail[] = oJson.emails ?? [];
           const email = emails.find((e) => e.to.toLowerCase() === result!.alias.toLowerCase());
@@ -137,7 +141,7 @@ export default function SimulatePanel() {
       }
     }
     tick();
-    const id = setInterval(tick, 10_000);
+    const id = setInterval(tick, 4_000);
     return () => {
       alive = false;
       clearInterval(id);
@@ -258,17 +262,23 @@ export default function SimulatePanel() {
               See your row in the Google Sheet ↗
             </a>
           </div>
-          <div style={{ fontSize: 14, color: "var(--muted)" }}>
-            {result.poked
-              ? "Pipeline triggered. The email usually goes out within thirty seconds."
-              : "The immediate trigger failed, so the 5-minute timer will pick this row up instead. If you asked for a copy, it may not arrive in that case."}
-          </div>
           <div style={{ fontSize: 14 }}>
             Status:{" "}
             {hire?.welcomeStatus ? (
               <span className={`badge ${hire.welcomeStatus}`}>{hire.welcomeStatus}</span>
             ) : (
-              <span style={{ color: "var(--muted)" }}>waiting for the pipeline…</span>
+              <span style={{ color: "var(--muted)" }}>pipeline triggered</span>
+            )}
+            {pollStatus === "polling" && !outboxEmail && (
+              <span style={{ color: "var(--muted)", marginLeft: 8 }}>
+                {hire?.welcomeStatus === "SENT"
+                  ? "· sent, fetching the archived email…"
+                  : hire?.welcomeStatus === "SENDING"
+                    ? "· mid-send…"
+                    : hire
+                      ? "· row picked up, validating and rendering…"
+                      : "· waiting for the pipeline to pick up the row (usually 10 to 30 seconds)…"}
+              </span>
             )}
           </div>
           {pollStatus === "flagged" && hire?.welcomeStatus && (
@@ -279,7 +289,9 @@ export default function SimulatePanel() {
           )}
           {pollStatus === "timeout" && (
             <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
-              Taking longer than expected. Check the Tracker tab.
+              Taking longer than expected. The immediate trigger may have failed; the 5-minute
+              timer picks the row up in that case (a visitor copy may not arrive that way).
+              Check the Tracker tab.
             </p>
           )}
           {outboxEmail && (
