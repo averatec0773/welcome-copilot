@@ -15,7 +15,7 @@ export type OutboxEmail = {
 
 export type LogEntry = { timestamp: string; runId: string; hireId: string; action: string; result: string };
 
-function credentials(): object {
+export function credentials(): object {
   const b64 = process.env.GOOGLE_SA_KEY_B64;
   if (b64) return JSON.parse(Buffer.from(b64, "base64").toString("utf8"));
   const keyPath = process.env.GOOGLE_SA_KEY_PATH;

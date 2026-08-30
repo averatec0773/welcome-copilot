@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ACCESS_COOKIE, accessToken, hasAccess, verifyCode } from "@/lib/access";
+import { audit } from "@/lib/audit";
 import { clientIp, getLimiters } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +40,11 @@ export async function POST(req: NextRequest) {
   } catch {
     /* handled below */
   }
-  if (!verifyCode(code)) return NextResponse.json({ error: "invalid_code" }, { status: 401 });
+  if (!verifyCode(code)) {
+    audit("unlock_fail", req, {});
+    return NextResponse.json({ error: "invalid_code" }, { status: 401 });
+  }
+  audit("unlock_ok", req, {});
 
   const res = NextResponse.json({ ok: true });
   res.cookies.set(ACCESS_COOKIE, accessToken(), {

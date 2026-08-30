@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ACCESS_COOKIE, hasAccess } from "@/lib/access";
+import { audit } from "@/lib/audit";
 import { clientIp, getLimiters } from "@/lib/ratelimit";
 import { appendTrackerRow, mapConfig, mapTrackerRows, readRange } from "@/lib/sheets";
 import { buildSimulateRow, countPendingDemoRows, isQuotaLow, isValidEmail } from "@/lib/simulate";
@@ -110,6 +111,9 @@ export async function POST(req: NextRequest) {
   }
 
   const sheetLink = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=0&range=A${appendedRow}`;
+
+  const visitorEmailDomain = visitorEmail?.includes("@") ? visitorEmail.split("@")[1] : "";
+  audit("simulate", req, { name, alias, visitorEmailDomain });
 
   return NextResponse.json({ alias, name, row: appendedRow, sheetLink, poked });
 }

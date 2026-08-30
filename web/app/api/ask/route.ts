@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ACCESS_COOKIE, hasAccess } from "@/lib/access";
+import { audit } from "@/lib/audit";
 import { answerQuestion, SUGGESTED_QUESTIONS, type AskResponse } from "@/lib/claude";
 import { clientIp, getLimiters } from "@/lib/ratelimit";
 import prebaked from "@/content/prebaked.json";
@@ -24,10 +25,14 @@ export async function POST(req: NextRequest) {
   // arbitrary question that happens to collide with a JSON prototype key
   // (e.g. "constructor") must never short-circuit into a bogus cache hit.
   const baked = SUGGESTED_QUESTIONS.includes(question) ? PREBAKED[question] : undefined;
-  if (baked) return NextResponse.json({ ...baked, cached: true });
+  if (baked) {
+    audit("ask_cached", req, { question });
+    return NextResponse.json({ ...baked, cached: true });
+  }
 
   // Free-form questions call Claude — they need the access code…
   if (!hasAccess(req.cookies.get(ACCESS_COOKIE)?.value)) {
+    audit("ask_locked", req, { question });
     return NextResponse.json({ error: "locked" }, { status: 401 });
   }
 
@@ -63,7 +68,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    return NextResponse.json(await answerQuestion(question));
+    const result = await answerQuestion(question);
+    audit("ask_live", req, { question, answer: result.answer });
+    return NextResponse.json(result);
   } catch (e) {
     console.error("ask failed:", e);
     return NextResponse.json({ error: "assistant_unavailable" }, { status: 502 });

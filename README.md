@@ -109,6 +109,7 @@ Environment variables (`web/.env.local` for local dev, Vercel project env vars f
 | `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token. |
 | `DEMO_ACCESS_CODE` | Invite code gating free-form assistant questions. |
 | `HEALTHCHECKS_BADGE_URL` | Optional. Public status badge URL shown on the Health page. |
+| `AUDIT_SHEET_ID` | Optional. ID of a private Google Sheet (not the public demo tracker) to log security-relevant events to. Unset disables audit logging entirely. |
 
 ```
 cd web
