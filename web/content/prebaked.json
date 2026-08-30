@@ -1,6 +1,6 @@
 {
   "How do I get access to the EHR system?": {
-    "answer": "To get EHR access, you'll need to submit a request [1]. When you do, include your full name and regional pod, and send it to it@mentella.example [2]. If you have any error messages, attach a screenshot — that helps them triage faster [2].\n\nKeep in mind that your account won't become active until your supervisor countersigns it [3]. This is a HIPAA requirement to ensure authorized access to client information. Your supervisor will get an automatic notification when you submit, but if you don't see approval within 2 business days, reach out to your supervisor directly or escalate to it@mentella.example [3].",
+    "answer": "To get EHR access, you'll need to submit a request [1]. When you do, include your full name and regional pod, and send it to it@mentella.example [2]. If you have any error messages, attach a screenshot; that helps them triage faster [2].\n\nKeep in mind that your account won't become active until your supervisor countersigns it [3]. This is a HIPAA requirement to ensure authorized access to client information. Your supervisor will get an automatic notification when you submit, but if you don't see approval within 2 business days, reach out to your supervisor directly or escalate to it@mentella.example [3].",
     "sources": [
       {
         "docTitle": "EHR Access and Accounts",
@@ -23,7 +23,7 @@
     ]
   },
   "When is my first paycheck, and how do I set up direct deposit?": {
-    "answer": "Your first paycheck arrives on the first scheduled payday after your start date [2]. Mentella pays semi-monthly on the 15th and the last business day of each month [2].\n\nTo receive it, set up direct deposit in your Paylocity profile during your first week — it's a day-1 checklist item [1][3]. You can add up to 3 accounts and split pay by percentage or fixed amount [1]. Once you complete your direct deposit setup in Paylocity, your first paycheck will be paid out by direct deposit [2]. If you start mid-period, that first check is prorated to the days you actually worked [2].",
+    "answer": "Your first paycheck arrives on the first scheduled payday after your start date [2]. Mentella pays semi-monthly on the 15th and the last business day of each month [2].\n\nTo receive it, set up direct deposit in your Paylocity profile during your first week; it's a day-1 checklist item [1][3]. You can add up to 3 accounts and split pay by percentage or fixed amount [1]. Once you complete your direct deposit setup in Paylocity, your first paycheck will be paid out by direct deposit [2]. If you start mid-period, that first check is prorated to the days you actually worked [2].",
     "sources": [
       {
         "docTitle": "Payroll and Paylocity",
@@ -46,7 +46,7 @@
     ]
   },
   "How do I request time off?": {
-    "answer": "To request time off, start by blocking the dates in Calendly and canceling or reassigning any client sessions during that window [1]. Then submit your PTO request in Paylocity at least 2 weeks in advance for anything longer than a single day [1]. The 2-week notice and calendar blocking are important because approval can get delayed if your calendar still shows available slots during your requested time off [1].\n\nIf you have a personal emergency and need same-day or next-day time off, you don't need the 2-week advance notice — just notify your pod lead as soon as you can [1].",
+    "answer": "To request time off, start by blocking the dates in Calendly and canceling or reassigning any client sessions during that window [1]. Then submit your PTO request in Paylocity at least 2 weeks in advance for anything longer than a single day [1]. The 2-week notice and calendar blocking are important because approval can get delayed if your calendar still shows available slots during your requested time off [1].\n\nIf you have a personal emergency and need same-day or next-day time off, you don't need the 2-week advance notice; just notify your pod lead as soon as you can [1].",
     "sources": [
       {
         "docTitle": "PTO and Leave",
@@ -69,7 +69,7 @@
     ]
   },
   "Where is client information allowed to live?": {
-    "answer": "Client information is only allowed to live in the EHR — your Electronic Health Record system [1][3]. You cannot store or discuss PHI (Protected Health Information) in email, Slack, shared spreadsheets, personal notes apps, or text messages, even when communicating with supervisors or colleagues [3]. If you need to flag something about a client to a coworker, use the EHR's internal messaging feature instead [3]. This keeps client data secure and HIPAA-compliant.",
+    "answer": "Client information is only allowed to live in the EHR, your Electronic Health Record system [1][3]. You cannot store or discuss PHI (Protected Health Information) in email, Slack, shared spreadsheets, personal notes apps, or text messages, even when communicating with supervisors or colleagues [3]. If you need to flag something about a client to a coworker, use the EHR's internal messaging feature instead [3]. This keeps client data secure and HIPAA-compliant.",
     "sources": [
       {
         "docTitle": "EHR Access and Accounts",

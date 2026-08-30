@@ -55,7 +55,7 @@ function UnlockChip() {
         setNote("That code didn't work.");
       }
     } catch {
-      setNote("Network error — retry.");
+      setNote("Network error. Try again.");
     } finally {
       setBusy(false);
     }
@@ -71,7 +71,10 @@ function UnlockChip() {
       style={{ position: "relative", fontSize: 13 }}
     >
       <summary
-        style={{ cursor: "pointer", color: "var(--muted)", listStyle: "none", userSelect: "none" }}
+        style={{
+          cursor: "pointer", color: "var(--muted)", listStyle: "none",
+          userSelect: "none", whiteSpace: "nowrap",
+        }}
       >
         🔒 Enter access code
       </summary>
@@ -116,10 +119,16 @@ function ConsoleChrome({ children }: { children: React.ReactNode }) {
   return (
     <div className="container" style={{ padding: "24px 24px 64px" }}>
       <header style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 16, marginBottom: 8 }}>
-        <Link href="/" style={{ textDecoration: "none", fontWeight: 700, color: "var(--ink)" }}>
+        <Link
+          href="/"
+          style={{
+            textDecoration: "none", fontWeight: 600, color: "var(--accent-ink)",
+            fontFamily: "var(--font-serif), Georgia, serif", fontSize: 20,
+          }}
+        >
           Welcome Copilot
         </Link>
-        <span style={{ color: "var(--muted)", fontSize: 14 }}>Ops Console — read-only</span>
+        <span style={{ color: "var(--muted)", fontSize: 14 }}>Ops console</span>
         <span className="badge neutral">Demo · fictional data</span>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16 }}>
           <UnlockChip />
@@ -133,7 +142,12 @@ function ConsoleChrome({ children }: { children: React.ReactNode }) {
           </a>
         </div>
       </header>
-      <nav style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border)", marginBottom: 24 }}>
+      <nav
+        style={{
+          display: "flex", flexWrap: "wrap", gap: 4,
+          borderBottom: "1px solid var(--border)", marginBottom: 24,
+        }}
+      >
         {TABS.map((t) => (
           <Link
             key={t.href}
@@ -143,6 +157,7 @@ function ConsoleChrome({ children }: { children: React.ReactNode }) {
               textDecoration: "none",
               fontWeight: 600,
               fontSize: 15,
+              whiteSpace: "nowrap",
               color: pathname.startsWith(t.href) ? "var(--accent)" : "var(--muted)",
               borderBottom: pathname.startsWith(t.href)
                 ? "2px solid var(--accent)"

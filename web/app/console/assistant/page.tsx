@@ -7,7 +7,7 @@ type Source = { docTitle: string; section: string; snippet: string; updated: str
 type Msg = { role: "user" | "assistant"; text: string; sources?: Source[]; limited?: boolean; cached?: boolean };
 
 const LOCKED_FREEFORM_MESSAGE =
-  "Free-form questions need an access code — enter it at the top right. The four suggested questions work for everyone.";
+  "Free-form questions need an access code. Enter it in the console header. The four suggested questions work for everyone.";
 
 export default function AssistantPage() {
   const { unlocked, promptUnlock } = useUnlock();
@@ -46,7 +46,7 @@ export default function AssistantPage() {
           j.error === "locked"
             ? LOCKED_FREEFORM_MESSAGE
             : j.error === "rate_limited"
-              ? "Whoa — one question at a time please. Try again in a minute."
+              ? "One question at a time, please. Try again in a minute."
               : j.error === "daily_budget_exhausted"
                 ? "The demo's daily AI budget is used up. The four suggested questions still work (cached answers)."
                 : "The assistant is unavailable right now.";
@@ -58,7 +58,7 @@ export default function AssistantPage() {
         ]);
       }
     } catch {
-      setMsgs((m) => [...m, { role: "assistant", text: "Network error — please retry." }]);
+      setMsgs((m) => [...m, { role: "assistant", text: "Network error. Please try again." }]);
     } finally {
       setBusy(false);
     }
@@ -86,13 +86,14 @@ export default function AssistantPage() {
 
   return (
     <section style={{ maxWidth: 720 }}>
+      <h2 style={{ margin: "0 0 12px" }}>Assistant</h2>
       <Explain
         title="An assistant that only knows the handbook"
         points={[
           "Answers come from 9 onboarding docs, with citations and each doc's last-updated date.",
-          "If the handbook doesn't cover it, it says so — instead of guessing.",
-          "Suggested questions are free for everyone; free-form questions need the access code.",
-          "Limits: 8 questions/min per visitor, 300/day demo-wide.",
+          "If the handbook doesn't cover a question, it says so instead of guessing.",
+          "The four suggested questions are open to everyone. Free-form questions need the access code.",
+          "Limits: 8 questions a minute per visitor, 300 a day for the whole demo.",
         ]}
       />
       <div className="card" style={{ minHeight: 380, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -123,7 +124,7 @@ export default function AssistantPage() {
                 <summary style={{ cursor: "pointer" }}>Sources ({m.sources.length})</summary>
                 {m.sources.map((s, j) => (
                   <p key={j} style={{ margin: "6px 0" }}>
-                    <strong>[{j + 1}] {s.docTitle} — {s.section}</strong>
+                    <strong>[{j + 1}] {s.docTitle} · {s.section}</strong>
                     {s.updated && (
                       <span style={{ fontSize: 12, color: "var(--muted)" }}> · updated {s.updated}</span>
                     )}
@@ -142,7 +143,7 @@ export default function AssistantPage() {
       {!unlocked && (
         <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 12 }}>
           Suggested questions above are open to everyone. Free-form questions need the access
-          code — enter it at the top right.
+          code, entered in the console header.
         </p>
       )}
 

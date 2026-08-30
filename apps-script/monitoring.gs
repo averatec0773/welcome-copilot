@@ -59,7 +59,7 @@ function dailyDigest() {
   });
   const demoSends = entries.filter(function (r) { return r[3] === 'SEND' && demoHireIds[String(r[2])]; }).length;
   const body = [
-    'welcome-copilot pipeline — last 24h',
+    'welcome-copilot pipeline, last 24h',
     'Emails sent: ' + count('SEND'),
     'Demo sends today: ' + demoSends,
     'Drafts created (dry-run): ' + count('DRAFT'),
@@ -71,7 +71,7 @@ function dailyDigest() {
     'Rows stuck in SENDING (need review): ' + stuck,
     'Mail quota remaining today: ' + MailApp.getRemainingDailyQuota(),
     '',
-    'No news from me tomorrow would itself be a signal — check the triggers.',
+    'No news from me tomorrow would itself be a signal. Check the triggers.',
   ].join('\n');
   // Send directly (not via alertAdmin) so the inbox gets one DIGEST row, not
   // an extra ALERT row for the same email.

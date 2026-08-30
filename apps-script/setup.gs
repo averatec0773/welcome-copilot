@@ -33,7 +33,7 @@ function provisionSheet() {
     ['H-0002', 'James Okafor', demoEmail_('james'), 'LCSW', 'NY', d(2026, 8, 10), 'Dana Whitfield', 'Onboarded', d(2026, 7, 27), 'SENT', '', false,
       d(2026, 6, 26), d(2026, 7, 11), d(2026, 7, 26), 'Relocating from out of state; start date confirmed.'],
     ['H-0003', 'Sarah Kim', demoEmail_('sarah'), 'LPC', 'TX', d(2026, 9, 1), 'Luis Herrera', 'Hired', d(2026, 8, 18), 'SENT', '', false,
-      d(2026, 7, 18), d(2026, 8, 2), d(2026, 8, 17), 'Bilingual (Spanish/English) — strong asset for the TX caseload.'],
+      d(2026, 7, 18), d(2026, 8, 2), d(2026, 8, 17), 'Bilingual (Spanish/English), a strong asset for the TX caseload.'],
     ['H-0004', 'Priya Natarajan', demoEmail_('priya'), 'LPCC', 'CA', d(2026, 9, 14), 'Luis Herrera', 'Hired', '', '', '', false,
       d(2026, 7, 31), d(2026, 8, 15), d(2026, 8, 30), 'Pending final license verification with the CA board.'],
     ['H-0005', 'Daniel Reyes', 'daniel.reyes@', 'PsyD', 'FL', d(2026, 9, 14), 'Dana Whitfield', 'Hired', '', '', '', false,
@@ -56,7 +56,7 @@ function provisionSheet() {
   tracker.getRange(2, COL.STATUS, 500, 1).setDataValidation(rule);
 
   const protection = tracker.getRange(1, COL.SENT_AT, tracker.getMaxRows(), 3)
-    .protect().setDescription('Script-managed columns — do not edit by hand');
+    .protect().setDescription('Script-managed columns. Do not edit by hand.');
   protection.setWarningOnly(true);
   tracker.autoResizeColumns(1, headers.length);
 

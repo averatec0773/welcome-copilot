@@ -1,11 +1,16 @@
 :root {
-  --bg: #faf9f7;
+  --bg: #f6f7f3;
   --surface: #ffffff;
-  --ink: #26221d;
-  --muted: #6b665e;
-  --accent: #4a6b5d;
-  --accent-soft: #eaf0ed;
-  --border: #e7e2da;
+  --ink: #253129;
+  --muted: #5f6c62;
+  --accent: #2f5745;
+  --accent-ink: #1f4835;
+  --accent-soft: #e7ece4;
+  --terra: #c46a40;
+  /* Text-safe terracotta. Plain --terra is 3.2:1 on sage, under AA for the
+     12px .eyebrow, so labels use this darker step instead. */
+  --terra-ink: #9c4f2b;
+  --border: #dee4da;
   --sent: #1a7f4b;
   --drafted: #b45309;
   --error: #b42318;
@@ -25,9 +30,28 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+h1, h2, h3 {
+  font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+/* One scale, set here rather than inline: h2 is a page title, h3 a section
+   inside it. Pages may still override margins. */
+h2 { font-size: 26px; }
+h3 { font-size: 20px; }
+
 a { color: var(--accent); }
 
 .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+.eyebrow {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--terra-ink);
+}
 
 .badge {
   display: inline-block;
@@ -38,14 +62,14 @@ a { color: var(--accent); }
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
-.badge.SENT { background: #e5f4ec; color: var(--sent); }
+.badge.SENT { background: #e3f1e8; color: var(--sent); }
 .badge.DRAFTED { background: #fdf1e3; color: var(--drafted); }
 .badge.INVALID, .badge.ERROR { background: #fbeae8; color: var(--error); }
 .badge.SENDING { background: #e8eefc; color: var(--sending); }
 .badge.DUPLICATE { background: #fdf1e3; color: var(--drafted); }
-.badge.LIVE { background: #e5f4ec; color: var(--sent); }
-.badge.DRY_RUN { background: #f1efeb; color: var(--muted); }
-.badge.neutral { background: #f1efeb; color: var(--muted); }
+.badge.LIVE { background: #e3f1e8; color: var(--sent); }
+.badge.DRY_RUN { background: #eef0ea; color: var(--muted); }
+.badge.neutral { background: #eef0ea; color: var(--muted); }
 
 .card {
   background: var(--surface);
@@ -62,21 +86,37 @@ table.data th {
 }
 table.data td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
 table.data tr:last-child td { border-bottom: none; }
+/* Desktop only: below the breakpoint the table has no room to spare and
+   wrapping beats a horizontal scrollbar. 760.02 rather than 761 so no
+   fractional width (browser zoom) falls between this and the max-width rules. */
+@media (min-width: 760.02px) {
+  table.data .nowrap { white-space: nowrap; }
+}
+
+/* Two-step shedding. The full tracker table needs ~1030px, which only the
+   1080px container gives it, so the secondary columns leave first and the
+   identifying ones follow at .hide-sm. Tables shed columns, never scroll. */
+@media (max-width: 1079px) {
+  .hide-md { display: none; }
+}
 
 .outbox-grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
 .hide-sm { }
+.hide-md { }
 
 .tracker-row { cursor: pointer; }
 .tracker-row:hover { background: var(--accent-soft); }
+.tracker-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 @keyframes unlock-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(74, 107, 93, 0.55); }
-  100% { box-shadow: 0 0 0 8px rgba(74, 107, 93, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(47, 87, 69, 0.55); }
+  100% { box-shadow: 0 0 0 8px rgba(47, 87, 69, 0); }
 }
 .unlock-flash { animation: unlock-pulse 0.9s ease-out; }
 @media (max-width: 760px) {
   .outbox-grid { grid-template-columns: 1fr; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
   .hide-sm { display: none; }
+  table.data th, table.data td { padding: 12px 10px; }
 }

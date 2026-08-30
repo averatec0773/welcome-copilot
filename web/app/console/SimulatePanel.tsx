@@ -21,14 +21,14 @@ type SimulateStatus = {
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
-  locked: "This needs an access code — see below.",
-  rate_limited: "Rate limited — each visitor can simulate 10 times an hour (and the whole demo 3 times per 10 minutes). Try again in a bit.",
-  limiter_unavailable: "The rate limiter is unavailable right now — try again in a moment.",
+  locked: "This needs an access code. Enter it in the console header.",
+  rate_limited: "Rate limited. Each visitor can simulate 10 times an hour, and the whole demo 3 times per 10 minutes. Try again in a bit.",
+  limiter_unavailable: "The rate limiter is unavailable right now. Try again in a moment.",
   demo_backlog: "There are already several demo hires mid-pipeline. Give them a few minutes to finish, then retry.",
-  dry_run_mode: "The pipeline is in dry-run (rehearsal) mode right now — simulation is paused.",
-  quota_low: "Today's mail quota is running low, so live sends are paused for now. Try again tomorrow.",
-  sheet_unavailable: "Couldn't read the tracker sheet — try again in a moment.",
-  append_failed: "Couldn't append the row — try again in a moment.",
+  dry_run_mode: "The pipeline is in dry-run rehearsal mode right now, so simulation is paused.",
+  quota_low: "Today's mail quota is running low, so live sends are paused. Try again tomorrow.",
+  sheet_unavailable: "Couldn't read the tracker sheet. Try again in a moment.",
+  append_failed: "Couldn't append the row. Try again in a moment.",
 };
 
 function statusLine(s: SimulateStatus | null): string {
@@ -54,8 +54,8 @@ const EXPLAIN_PROPS = {
   title: "Trigger the real pipeline yourself",
   points: [
     "This appends a genuine row to the shared sheet, exactly like HR marking someone Hired.",
-    "The pipeline validates, renders, archives, then sends — to a + alias of the author's own inbox.",
-    "Watch every stage below, or open the sheet to see your row land.",
+    "The pipeline validates the row, renders the email, archives it, then sends it to a + alias of the author's own inbox.",
+    "Watch every stage below, or open the sheet and see your row land.",
   ],
 };
 
@@ -66,9 +66,9 @@ const EXPLAIN_PROPS = {
 function LockedPanel() {
   return (
     <section>
-      <h2 style={{ fontSize: 24, marginBottom: 8 }}>Simulate a hire</h2>
+      <h2 style={{ marginBottom: 8 }}>Simulate a hire</h2>
       <p style={{ fontSize: 14, color: "var(--muted)" }}>
-        This needs an access code — enter it at the top right.
+        This needs an access code. Enter it in the console header.
       </p>
     </section>
   );
@@ -161,7 +161,7 @@ export default function SimulatePanel() {
       });
       const j = await res.json();
       if (!res.ok) {
-        setError(ERROR_MESSAGES[j.error] ?? "Something went wrong — try again.");
+        setError(ERROR_MESSAGES[j.error] ?? "Something went wrong. Try again.");
       } else {
         setResult(j);
         setHire(null);
@@ -170,7 +170,7 @@ export default function SimulatePanel() {
         setPollStatus("polling");
       }
     } catch {
-      setError("Network error — please retry.");
+      setError("Network error. Please try again.");
     } finally {
       setBusy(false);
       refreshStatus();
@@ -182,11 +182,12 @@ export default function SimulatePanel() {
 
   return (
     <section>
-      <h2 style={{ fontSize: 24, marginBottom: 8 }}>Simulate a hire</h2>
+      <h2 style={{ marginBottom: 8 }}>Simulate a hire</h2>
       <Explain {...EXPLAIN_PROPS} />
       <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>
-        The recipient is always a + alias of the author&rsquo;s own inbox, never you or anyone else.
-        {wantCopy && " If you add your email below, you'll get a copy of that same email — once, no list, no follow-up."}
+        {wantCopy
+          ? "The pipeline always sends to a + alias of the author's own inbox. If you add your email below, you get one copy of that same email. No list, no follow-up."
+          : "The recipient is always a + alias of the author's own inbox, never you or anyone else."}
       </p>
 
       {!result && (
@@ -221,7 +222,7 @@ export default function SimulatePanel() {
                 }}
               />
               <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>
-                Copies sometimes land in spam — check there first.
+                Copies sometimes land in spam. Check there first.
               </p>
             </>
           )}
@@ -250,15 +251,15 @@ export default function SimulatePanel() {
       {result && (
         <div className="card" style={{ display: "grid", gap: 12 }}>
           <div style={{ fontSize: 14 }}>
-            ✓ Appended row {result.row} for <strong>{result.name}</strong> ({result.alias}) —{" "}
+            ✓ Row {result.row} appended for <strong>{result.name}</strong> ({result.alias}).{" "}
             <a href={result.sheetLink} target="_blank" rel="noopener noreferrer">
               See your row in the Google Sheet ↗
             </a>
           </div>
           <div style={{ fontSize: 14, color: "var(--muted)" }}>
             {result.poked
-              ? "Pipeline nudged — usually under 30s."
-              : "Nudge failed — the 5-minute timer will pick it up (if you asked for a copy, it may not arrive in that case)."}
+              ? "Pipeline nudged. The email usually goes out within 30 seconds."
+              : "The nudge failed, so the 5-minute timer will pick this row up instead. If you asked for a copy, it may not arrive in that case."}
           </div>
           <div style={{ fontSize: 14 }}>
             Status:{" "}
@@ -270,13 +271,13 @@ export default function SimulatePanel() {
           </div>
           {pollStatus === "flagged" && hire?.welcomeStatus && (
             <p style={{ fontSize: 13, color: "var(--error)", margin: 0 }}>
-              The pipeline flagged this row as {hire.welcomeStatus} — that&rsquo;s the guard
-              working; see the Tracker.
+              The pipeline flagged this row as {hire.welcomeStatus}. That is the guard working
+              as designed; see the Tracker.
             </p>
           )}
           {pollStatus === "timeout" && (
             <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
-              Taking longer than expected — check the Tracker tab.
+              Taking longer than expected. Check the Tracker tab.
             </p>
           )}
           {outboxEmail && (
@@ -290,8 +291,8 @@ export default function SimulatePanel() {
                 />
               </div>
               <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
-                That&rsquo;s the exact email the real pipeline just sent — same code path a real
-                new hire gets, archived byte-for-byte in the Outbox.
+                This is the exact email the pipeline just sent, on the same code path a real
+                new hire gets. It is archived in the Outbox too.
               </p>
             </div>
           )}

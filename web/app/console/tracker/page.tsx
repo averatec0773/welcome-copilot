@@ -3,7 +3,6 @@ import type { CSSProperties } from "react";
 import { Fragment, useEffect, useState } from "react";
 import { usePoll } from "@/lib/usePoll";
 import type { Hire } from "@/lib/sheets";
-import { Explain } from "../Explain";
 import SimulatePanel from "../SimulatePanel";
 import { useUnlock } from "../UnlockContext";
 
@@ -28,25 +27,28 @@ function fmtDate(s: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+// Kept short on purpose: these five have to sit on one line at 1280w.
 const LEGEND: { status: string; meaning: string }[] = [
-  { status: "SENT", meaning: "welcome email delivered, will never re-send" },
-  { status: "DRAFTED", meaning: "dry-run rehearsal: drafted, not sent" },
-  { status: "SENDING", meaning: "mid-send marker; if it sticks, a human looks — never auto-retried" },
-  { status: "INVALID", meaning: "bad data caught before any email left" },
-  { status: "DUPLICATE", meaning: "same person twice — only the first row may ever send" },
+  { status: "SENT", meaning: "delivered once" },
+  { status: "DRAFTED", meaning: "dry run only" },
+  { status: "SENDING", meaning: "mid-send, human reviews" },
+  { status: "INVALID", meaning: "bad data, not sent" },
+  { status: "DUPLICATE", meaning: "only the first sends" },
 ];
 
 function StatusLegend() {
   return (
     <div
-      className="card"
-      style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10, marginBottom: 16 }}
+      style={{
+        display: "flex", flexWrap: "wrap", alignItems: "baseline",
+        columnGap: 14, rowGap: 6, margin: "12px 2px 16px",
+      }}
     >
       {LEGEND.map((l) => (
-        <div key={l.status} style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+        <span key={l.status} style={{ display: "inline-flex", alignItems: "baseline", gap: 6 }}>
           <span className={`badge ${l.status}`}>{l.status}</span>
           <span style={{ fontSize: 13, color: "var(--muted)" }}>{l.meaning}</span>
-        </div>
+        </span>
       ))}
     </div>
   );
@@ -61,11 +63,16 @@ const CHIP_STYLE: CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-const ARROW = <span style={{ color: "var(--muted)", fontSize: 13 }}>→</span>;
+// Hidden on small screens: the strip stacks vertically there, and a
+// right-pointing arrow on its own line reads as a dangling glyph.
+const ARROW = <span className="hide-sm" style={{ color: "var(--muted)", fontSize: 13 }}>→</span>;
 
 function LifecycleStrip() {
   return (
     <div className="card" style={{ marginBottom: 16 }}>
+      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--accent-ink)", margin: "0 0 10px" }}>
+        How a row becomes a sent email
+      </p>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
         <span style={CHIP_STYLE}>Interviewing</span>
         {ARROW}
@@ -94,8 +101,9 @@ function LifecycleStrip() {
         {ARROW}
         <span style={{ ...CHIP_STYLE, fontWeight: 700 }}>SENT</span>
       </div>
-      <p style={{ fontSize: 12, color: "var(--muted)", margin: "10px 0 0" }}>
-        fails validation → INVALID · same email twice → DUPLICATE
+      <p style={{ fontSize: 12.5, color: "var(--muted)", margin: "10px 0 0" }}>
+        A row that fails validation is marked INVALID. A second row with the same email is
+        marked DUPLICATE. Two rows above are broken on purpose so you can watch both guards fire.
       </p>
     </div>
   );
@@ -137,6 +145,9 @@ function CandidateDetail({ hire }: { hire: Hire }) {
           gap: 8, fontSize: 13,
         }}
       >
+        {/* Hire ID lives here too: the column is hidden below 760px, and the
+            Health log identifies rows by hire_id at every width. */}
+        <div><span style={{ color: "var(--muted)" }}>Hire ID:</span> {hire.hireId || "—"}</div>
         <div><span style={{ color: "var(--muted)" }}>License:</span> {hire.license || "—"}</div>
         <div><span style={{ color: "var(--muted)" }}>State:</span> {hire.state || "—"}</div>
         <div><span style={{ color: "var(--muted)" }}>Manager:</span> {hire.manager || "—"}</div>
@@ -230,8 +241,15 @@ export default function TrackerPage() {
 
   return (
     <section>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
-        <h2 style={{ fontSize: 24, margin: 0 }}>Tracker</h2>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+          <h2 style={{ margin: 0 }}>Tracker</h2>
+          {refreshedAt && (
+            <span style={{ color: "var(--muted)", fontSize: 13 }}>
+              Refreshed {refreshedAt.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
         <button
           onClick={openSimulate}
           style={{
@@ -242,30 +260,18 @@ export default function TrackerPage() {
           ▶ Simulate a hire
         </button>
       </div>
-      <Explain
-        title="This is the shared hiring spreadsheet, live"
-        points={[
-          "It's the same sheet HR already edits — the link at the top right says so.",
-          "The pipeline watches the status column: “Hired” is the trigger.",
-          "The Welcome email column is the pipeline writing its own result back.",
-          "Two rows are deliberately broken (a bad address → INVALID, a duplicate → DUPLICATE) to show the guards working.",
-        ]}
-      />
-      <StatusLegend />
-      <LifecycleStrip />
-      <p style={{ color: "var(--muted)", fontSize: 13 }}>
-        {refreshedAt && `Refreshed ${refreshedAt.toLocaleTimeString()}.`}
-      </p>
-      <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 8 }}>
-        Click any row for the full candidate story.
+      <p style={{ color: "var(--muted)", fontSize: 15, margin: "0 0 14px", maxWidth: 760 }}>
+        This is the same shared sheet HR edits, read live. The pipeline watches the Status
+        column, and the Welcome email column is where it writes its result back. Click a row
+        for the full candidate story.
       </p>
       <div className="card" style={{ padding: 0, overflowX: "auto" }}>
         <table className="data">
           <thead>
             <tr>
-              <th>ID</th><th>Name</th><th>Welcome email</th><th>Status</th><th>Start</th>
-              <th className="hide-sm">License</th><th className="hide-sm">State</th>
-              <th className="hide-sm">Email</th><th className="hide-sm">Detail</th>
+              <th className="nowrap hide-sm">ID</th><th className="nowrap">Name</th><th>Welcome email</th><th>Status</th><th className="nowrap hide-sm">Start</th>
+              <th className="hide-md">License</th><th className="hide-md">State</th>
+              <th className="hide-md">Email</th>
             </tr>
           </thead>
           <tbody>
@@ -274,12 +280,24 @@ export default function TrackerPage() {
               const open = expandedId === key;
               return (
                 <Fragment key={key}>
+                  {/* Keyboard-reachable: the expanded row is the only place
+                      the error reason lives, and on mobile the only place the
+                      hire ID and start date live. */}
                   <tr
                     className="tracker-row"
+                    tabIndex={0}
+                    role="button"
+                    aria-expanded={open}
                     onClick={() => setExpandedId(open ? null : key)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setExpandedId(open ? null : key);
+                      }
+                    }}
                   >
-                    <td>{h.hireId}{h.isDemo ? " 🧪" : ""}</td>
-                    <td>{h.name}</td>
+                    <td className="nowrap hide-sm">{h.hireId}</td>
+                    <td className="nowrap">{h.name}{h.isDemo ? " 🧪" : ""}</td>
                     <td>
                       {h.welcomeStatus ? (
                         <span className={`badge ${h.welcomeStatus}`}>{h.welcomeStatus}</span>
@@ -288,15 +306,14 @@ export default function TrackerPage() {
                       )}
                     </td>
                     <td><span className="badge neutral">{h.status}</span></td>
-                    <td>{fmtDate(h.startDate)}</td>
-                    <td className="hide-sm">{h.license}</td>
-                    <td className="hide-sm">{h.state}</td>
-                    <td className="hide-sm" style={{ color: "var(--muted)" }}>{h.email}</td>
-                    <td className="hide-sm" style={{ color: "var(--error)", fontSize: 13 }}>{h.errorDetail}</td>
+                    <td className="nowrap hide-sm">{fmtDate(h.startDate)}</td>
+                    <td className="hide-md">{h.license}</td>
+                    <td className="hide-md">{h.state}</td>
+                    <td className="hide-md" style={{ color: "var(--muted)" }}>{h.email}</td>
                   </tr>
                   {open && (
                     <tr>
-                      <td colSpan={9} style={{ padding: 0, borderBottom: "1px solid var(--border)", background: "var(--bg)" }}>
+                      <td colSpan={8} style={{ padding: 0, borderBottom: "1px solid var(--border)", background: "var(--bg)" }}>
                         <CandidateDetail hire={h} />
                       </td>
                     </tr>
@@ -307,6 +324,8 @@ export default function TrackerPage() {
           </tbody>
         </table>
       </div>
+      <StatusLegend />
+      <LifecycleStrip />
       {modalMounted && <SimulateModal visible={modalVisible} onClose={() => setModalVisible(false)} />}
     </section>
   );

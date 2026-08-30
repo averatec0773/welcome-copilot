@@ -34,11 +34,11 @@ function ValidationBanner({ validations }: { validations: Validation[] }) {
       className="card"
       style={{
         borderColor: ok ? undefined : "var(--drafted)",
-        background: ok ? "#e5f4ec" : "#fdf1e3",
+        background: ok ? "var(--accent-soft)" : "#fdf1e3",
       }}
     >
       <div style={{ fontWeight: 700, color: ok ? "var(--sent)" : "var(--drafted)" }}>
-        {ok ? "All validation checks passed" : `${warnings.length} validation warning(s) — export loaded anyway, flagged for review`}
+        {ok ? "All validation checks passed" : `${warnings.length} validation warning(s). Export loaded anyway, flagged for review`}
       </div>
       <ul style={{ margin: "10px 0 0", padding: "0 0 0 18px", fontSize: 13 }}>
         {validations.map((v) => (
@@ -196,11 +196,12 @@ export default function UtilizationPage() {
 
   return (
     <section style={{ display: "grid", gap: 16 }}>
+      <h2 style={{ margin: 0 }}>Utilization</h2>
       <p style={{ color: "var(--muted)", fontSize: 13, maxWidth: 720 }}>
         Several core clinical and billing systems expose no API. This slice treats a
         scheduled manual CSV export as the interface: validate loudly, then report.
         Built at deploy time from {monthLabel(months[0])} and {monthLabel(months[months.length - 1])}{" "}
-        mock billing exports ({generatedAt}) — zero runtime cost, nothing recomputed on request.
+        mock billing exports ({generatedAt}). Zero runtime cost, nothing recomputed on request.
       </p>
 
       <ValidationBanner validations={validations} />

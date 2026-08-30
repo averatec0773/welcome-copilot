@@ -1,6 +1,6 @@
-// Storytelling device used at the top of every console page: what am I
-// looking at, and why does it matter. Plain, confident, no JSX children —
-// just a title and a short list of points.
+// Storytelling device used at the top of console pages: what am I looking
+// at, and why does it matter. Plain, confident, no JSX children — just a
+// title and a short list of points.
 
 export function Explain({ title, points }: { title: string; points: string[] }) {
   return (
@@ -9,13 +9,13 @@ export function Explain({ title, points }: { title: string; points: string[] }) 
         background: "var(--accent-soft)",
         borderLeft: "3px solid var(--accent)",
         borderRadius: "var(--radius)",
-        padding: "14px 18px",
+        padding: "12px 18px",
         marginBottom: 16,
-        fontSize: 15,
-        lineHeight: 1.6,
+        fontSize: 14,
+        lineHeight: 1.55,
       }}
     >
-      <p style={{ margin: "0 0 6px", fontWeight: 700 }}>{title}</p>
+      <p style={{ margin: "0 0 4px", fontWeight: 700, color: "var(--accent-ink)" }}>{title}</p>
       <ul style={{ margin: 0, paddingLeft: 20 }}>
         {points.map((p, i) => (
           <li key={i}>{p}</li>

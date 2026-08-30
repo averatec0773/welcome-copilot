@@ -41,12 +41,12 @@ function runSentence(entry: LogEntry): string {
   if (invalid) parts.push(`${invalid} invalid`);
   if (held) parts.push(`${held} held for quota`);
   const outcome = parts.length ? parts.join(", ") : "nothing to do";
-  return `${time} — woke up, found ${eligible} eligible: ${outcome}`;
+  return `${time} · woke up, found ${eligible} eligible: ${outcome}`;
 }
 
 function digestSentence(entry: LogEntry): string {
   const time = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
-  return `${time} — daily digest sent to the operator`;
+  return `${time} · daily digest sent to the operator`;
 }
 
 export default function HealthPage() {
@@ -57,13 +57,14 @@ export default function HealthPage() {
   const runEntries = data.logs.filter((l) => l.action === "RUN" || l.action === "DIGEST");
   return (
     <section style={{ display: "grid", gap: 16 }}>
+      <h2 style={{ margin: 0 }}>Health</h2>
       <Explain
-        title="How you'd know it broke — three independent defenses"
+        title="Three ways to notice a failure"
         points={[
-          "Instant ALERT emails (see Operator Inbox) fire the moment something needs a human, right now.",
-          "The dead-man's-switch badge below watches for silence itself — it catches the failures that can't report themselves.",
-          "The daily digest is the human-level bottom line, once a day.",
-          "The run log below shows every time the pipeline actually woke up and what it did.",
+          "Alert emails fire the moment something needs a human. They land in the Operator Inbox.",
+          "The dead-man's switch badge below watches for silence itself, which catches the failures that can't report themselves.",
+          "The daily digest is the bottom line a human actually reads, once a day.",
+          "The run log below shows every time the pipeline woke up and what it did.",
         ]}
       />
       <div className="stat-grid">
@@ -97,7 +98,7 @@ export default function HealthPage() {
             "—"
           )}
           <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
-            Alerts fire when the pipeline goes silent — whatever the cause.
+            Alerts fire when the pipeline goes silent, whatever the cause.
           </div>
         </div>
         <div className="card">
@@ -110,10 +111,10 @@ export default function HealthPage() {
       </div>
 
       <div>
-        <h2 style={{ fontSize: 24, margin: "0 0 10px" }}>Recent pipeline runs</h2>
+        <h3 style={{ margin: "0 0 10px" }}>Recent pipeline runs</h3>
         {runEntries.length === 0 ? (
           <p className="card" style={{ color: "var(--muted)", fontSize: 13 }}>
-            No runs logged yet — the pipeline fires every 5 minutes once the trigger is set up.
+            No runs logged yet. The pipeline fires every 5 minutes once the trigger is set up.
           </p>
         ) : (
           <div style={{ display: "grid", gap: 8 }}>
@@ -127,17 +128,17 @@ export default function HealthPage() {
       </div>
 
       <div>
-        <h2 style={{ fontSize: 24, margin: "0 0 10px" }}>Raw log (last 20)</h2>
+        <h3 style={{ margin: "0 0 10px" }}>Raw log (last 20)</h3>
         <div className="card" style={{ padding: 0, overflowX: "auto" }}>
           <table className="data">
             <thead>
-              <tr><th>Time</th><th>Run</th><th>Hire</th><th>Action</th><th>Result</th></tr>
+              <tr><th>Time</th><th className="hide-sm">Run</th><th>Hire</th><th>Action</th><th>Result</th></tr>
             </thead>
             <tbody>
               {data.logs.map((l, i) => (
                 <tr key={`${l.runId}-${l.hireId}-${i}`}>
                   <td>{l.timestamp}</td>
-                  <td style={{ fontFamily: "monospace", fontSize: 12 }}>{l.runId}</td>
+                  <td className="hide-sm" style={{ fontFamily: "monospace", fontSize: 12 }}>{l.runId}</td>
                   <td>{l.hireId}</td>
                   <td><span className={`badge ${l.action === "SEND" ? "SENT" : l.action === "DRAFT" ? "DRAFTED" : l.action === "DUPLICATE" ? "DUPLICATE" : ["ERROR", "INVALID"].includes(l.action) ? "ERROR" : "neutral"}`}>{l.action}</span></td>
                   <td style={{ fontSize: 13 }}>{l.result}</td>
@@ -147,7 +148,8 @@ export default function HealthPage() {
           </table>
         </div>
         <p style={{ fontSize: 12, color: "var(--muted)" }}>
-          Validation messages are redacted — the log carries hire_ids, not names or addresses.
+          Validation messages are redacted. The log identifies a row by its hire_id,
+          never by name or email address.
         </p>
       </div>
     </section>

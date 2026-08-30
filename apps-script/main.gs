@@ -122,7 +122,7 @@ function sendVisitorCopy_(row, msg, runId) {
     const visitor = cache.get(key);
     if (!visitor) return;
     GmailApp.sendEmail(visitor, msg.subject, '', {
-      htmlBody: msg.html + '<p style="color:#8a857d;font-size:12px">You received this copy because someone ran the Welcome Copilot demo with your address - one-time email, no list, no follow-up.</p>',
+      htmlBody: msg.html + '<p style="color:#5f6c62;font-size:12px">You received this copy because someone ran the Welcome Copilot demo with your address - one-time email, no list, no follow-up.</p>',
       name: 'Welcome Copilot demo',
     });
     cache.remove(key);

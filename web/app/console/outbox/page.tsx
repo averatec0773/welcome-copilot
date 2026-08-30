@@ -14,13 +14,14 @@ export default function OutboxPage() {
   const current = emails.find((e) => keyOf(e) === selectedKey) ?? emails[0];
   return (
     <section>
+      <h2 style={{ margin: "0 0 12px" }}>Outbox</h2>
       <Explain
-        title="Every email, archived at the moment it was rendered"
+        title="Every email, archived the moment it was rendered"
         points={[
-          "What you read here is exactly what the recipient got — byte for byte.",
-          "LIVE = actually sent. DRAFT = dry-run rehearsal, never left the building.",
-          "Archive-then-send order means even a failed send leaves evidence.",
-          "The Log (Health tab) records whether that archived email actually left.",
+          "What you read here is exactly what the recipient got.",
+          "LIVE means it was actually sent. DRAFT means a dry-run rehearsal that never left.",
+          "The archive is written before the send, so even a failed send leaves evidence.",
+          "The run log on the Health page records whether each archived email actually left.",
         ]}
       />
       <div className="outbox-grid">
@@ -37,9 +38,12 @@ export default function OutboxPage() {
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                <strong style={{ fontSize: 13 }}>{e.to}</strong>
-                <span className={`badge ${e.mode}`}>
-                  {e.mode === "DRY_RUN" ? "DRAFT — not sent" : e.mode}
+                <strong style={{ fontSize: 13, minWidth: 0, overflowWrap: "anywhere" }}>{e.to}</strong>
+                <span className={`badge ${e.mode}`} style={{ flexShrink: 0 }}>
+                  {/* Just "DRAFT": the Explain box above already says a draft
+                      never left, and the longer label pushed the recipient
+                      address into a mid-domain break. */}
+                  {e.mode === "DRY_RUN" ? "DRAFT" : e.mode}
                 </span>
               </div>
               <div style={{ fontSize: 13, marginTop: 2 }}>{e.subject}</div>

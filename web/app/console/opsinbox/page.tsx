@@ -14,16 +14,17 @@ export default function OpsInboxPage() {
   const current = messages.find((m) => keyOf(m) === selectedKey) ?? messages[0];
   return (
     <section>
+      <h2 style={{ margin: "0 0 12px" }}>Operator Inbox</h2>
       <Explain
-        title="The pipeline doesn't just log — it talks to its operator"
+        title="The emails the pipeline sends its own operator"
         points={[
-          "These are the actual emails it sends: instant alerts when something needs a human (defense 1) and the 8:00 daily digest (defense 3).",
-          "If this inbox goes quiet AND the dead-man's-switch stays green, things are genuinely fine.",
+          "Instant alerts the moment something needs a human, and a daily digest at 8:00.",
+          "A quiet inbox here, plus a green dead-man's switch on the Health page, means things are genuinely fine.",
         ]}
       />
       {messages.length === 0 ? (
         <p className="card" style={{ color: "var(--muted)" }}>
-          No operator mail yet — the first daily digest lands at 8:00.
+          No operator mail yet. The first daily digest lands at 8:00.
         </p>
       ) : (
         <div className="outbox-grid">

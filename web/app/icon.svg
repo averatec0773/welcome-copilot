@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="14" fill="#2f5745"/>
+  <!-- "W" as an explicit path: favicon rasterizers do not reliably resolve
+       system font families, so the glyph is drawn rather than typeset. -->
+  <path d="M12 18 L20 18 L24.5 38 L29 18 L35 18 L39.5 38 L44 18 L52 18 L44 46 L36.5 46 L32 27.5 L27.5 46 L20 46 Z"
+        fill="#f6f7f3"/>
+</svg>
