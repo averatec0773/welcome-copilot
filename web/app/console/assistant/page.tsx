@@ -118,6 +118,7 @@ export default function AssistantPage() {
           "Answers come from 9 onboarding docs, with citations and each doc's last-updated date.",
           "If the handbook doesn't cover it, it says so — instead of guessing.",
           "Suggested questions are free for everyone; free-form questions need the access code.",
+          "Limits: 8 questions/min per visitor, 300/day demo-wide.",
         ]}
       />
       <div className="card" style={{ minHeight: 380, display: "flex", flexDirection: "column", gap: 12 }}>

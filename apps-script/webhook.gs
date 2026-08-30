@@ -23,7 +23,7 @@ function doPost(e) {
   // even get a chance to matter.
   const cache = CacheService.getScriptCache();
   const hits = Number(cache.get('wh-hits') || 0);
-  if (hits >= 10) {
+  if (hits >= 30) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false })).setMimeType(ContentService.MimeType.JSON);
   }
   cache.put('wh-hits', String(hits + 1), 60);

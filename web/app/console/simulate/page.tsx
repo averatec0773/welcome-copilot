@@ -4,10 +4,20 @@ import type { Hire, OutboxEmail } from "@/lib/sheets";
 import { Explain } from "../Explain";
 
 type SimulateResult = { alias: string; name: string; row: number; sheetLink: string; poked: boolean };
+type SimulateStatus = {
+  unlocked: boolean;
+  ipRemaining: number | null;
+  ipLimit: number;
+  ipReset: number | null;
+  globalRemaining: number | null;
+  globalLimit: number;
+  globalReset: number | null;
+  windows: { ip: string; global: string };
+};
 
 const ERROR_MESSAGES: Record<string, string> = {
   locked: "This needs an access code — see below.",
-  rate_limited: "Rate limited — each visitor can simulate 3 times an hour (and the whole demo once per 10 minutes). Try again in a bit.",
+  rate_limited: "Rate limited — each visitor can simulate 10 times an hour (and the whole demo 3 times per 10 minutes). Try again in a bit.",
   limiter_unavailable: "The rate limiter is unavailable right now — try again in a moment.",
   demo_backlog: "There are already several demo hires mid-pipeline. Give them a few minutes to finish, then retry.",
   dry_run_mode: "The pipeline is in dry-run (rehearsal) mode right now — simulation is paused.",
@@ -15,6 +25,23 @@ const ERROR_MESSAGES: Record<string, string> = {
   sheet_unavailable: "Couldn't read the tracker sheet — try again in a moment.",
   append_failed: "Couldn't append the row — try again in a moment.",
 };
+
+function statusLine(s: SimulateStatus | null): string {
+  if (!s) return "";
+  if (s.ipRemaining === null || s.globalRemaining === null) {
+    return `limits: ${s.ipLimit}/hour per visitor, ${s.globalLimit} per 10 minutes demo-wide`;
+  }
+  return `Your simulations: ${s.ipRemaining} of ${s.ipLimit} left this hour · demo-wide: ${s.globalRemaining} of ${s.globalLimit} left per 10 min`;
+}
+
+function resetNote(s: SimulateStatus | null): string {
+  if (!s) return "";
+  const resets = [s.ipReset, s.globalReset].filter((r): r is number => r !== null);
+  if (resets.length === 0) return "";
+  const soonest = Math.min(...resets);
+  const mins = Math.ceil((soonest - Date.now()) / 60000);
+  return mins > 0 ? ` (resets in ~${mins} min)` : "";
+}
 
 const MAX_POLL_ATTEMPTS = 36; // 36 × 10s ≈ 6 minutes
 
@@ -95,10 +122,19 @@ export default function SimulatePage() {
   // "polling" until a terminal outcome: the email lands (outboxEmail set),
   // the pipeline flags the row (INVALID/DUPLICATE), or the attempt cap trips.
   const [pollStatus, setPollStatus] = useState<"polling" | "timeout" | "flagged">("polling");
+  const [simStatus, setSimStatus] = useState<SimulateStatus | null>(null);
   const attemptsRef = useRef(0);
+
+  function refreshStatus() {
+    fetch("/api/simulate")
+      .then((r) => r.json())
+      .then((j) => setSimStatus(j))
+      .catch(() => {});
+  }
 
   useEffect(() => {
     fetch("/api/unlock").then((r) => r.json()).then((j) => setUnlocked(!!j.unlocked)).catch(() => setUnlocked(false));
+    refreshStatus();
   }, []);
 
   // Once a row is appended, poll the tracker for the alias's status, then once
@@ -173,6 +209,7 @@ export default function SimulatePage() {
       setError("Network error — please retry.");
     } finally {
       setBusy(false);
+      refreshStatus();
     }
   }
 
@@ -258,9 +295,17 @@ export default function SimulatePage() {
           >
             {busy ? "Simulating…" : "Simulate a hire"}
           </button>
-          {error && <p style={{ color: "var(--error)", fontSize: 13, margin: 0 }}>{error}</p>}
+          {error && (
+            <p style={{ color: "var(--error)", fontSize: 13, margin: 0 }}>
+              {error}
+              {error === ERROR_MESSAGES.rate_limited && resetNote(simStatus)}
+            </p>
+          )}
         </form>
       )}
+
+      <p style={{ color: "var(--muted)", fontSize: 12, marginTop: 8 }}>{statusLine(simStatus)}</p>
+
 
       {result && (
         <div className="card" style={{ display: "grid", gap: 12 }}>

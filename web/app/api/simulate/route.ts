@@ -10,6 +10,48 @@ export const maxDuration = 30;
 
 const SHEET_ID = "138TahrgW_LzR5h1nIHXqdPtQNxi8jOeQcPeiQdOdO6w";
 
+const SIM_IP_LIMIT = 10;
+const SIM_GLOBAL_LIMIT = 3;
+
+// Live quota check — reads remaining tokens without consuming any, so the
+// console can show testers what they have left instead of letting them
+// discover the limit by hitting a 429.
+export async function GET(req: NextRequest) {
+  const unlocked = hasAccess(req.cookies.get(ACCESS_COOKIE)?.value);
+  const ip = clientIp(req);
+
+  let ipRemaining: number | null = null;
+  let globalRemaining: number | null = null;
+  // The installed @upstash/ratelimit (v2.0.8) resolves getRemaining() to
+  // { remaining, reset, limit } — reset (ms epoch) lets the UI show a
+  // countdown instead of just a bare "try later".
+  let ipReset: number | null = null;
+  let globalReset: number | null = null;
+  try {
+    const [ipRes, globalRes] = await Promise.all([
+      getLimiters().simPerIp.getRemaining(ip),
+      getLimiters().simGlobal.getRemaining("all"),
+    ]);
+    ipRemaining = ipRes.remaining;
+    ipReset = ipRes.reset;
+    globalRemaining = globalRes.remaining;
+    globalReset = globalRes.reset;
+  } catch (e) {
+    console.error("rate limiter unavailable (GET status):", e);
+  }
+
+  return NextResponse.json({
+    unlocked,
+    ipRemaining,
+    ipLimit: SIM_IP_LIMIT,
+    ipReset,
+    globalRemaining,
+    globalLimit: SIM_GLOBAL_LIMIT,
+    globalReset,
+    windows: { ip: "1 hour", global: "10 minutes" },
+  });
+}
+
 export async function POST(req: NextRequest) {
   let body: { firstName?: string; visitorEmail?: string } = {};
   try {
