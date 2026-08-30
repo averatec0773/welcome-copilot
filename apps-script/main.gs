@@ -12,18 +12,38 @@ function runPipeline() {
     const cfg = getConfig();
     // Fail closed: a missing or mangled dry_run row means drafts, not live mail.
     const dryRun = String(cfg.dry_run).toUpperCase() !== 'FALSE';
-    const eligible = readTrackerRows_().filter(function (r) {
+    const allRows = readTrackerRows_();
+    // First hire_id to claim an email wins; every later row with that email is a duplicate.
+    const emailOwner = {};
+    allRows.forEach(function (r) {
+      const email = String(r.email).trim().toLowerCase();
+      if (email && !(email in emailOwner)) emailOwner[email] = r.hireId;
+    });
+    const eligible = allRows.filter(function (r) {
       if (r.status !== TRIGGER_STATUS || r.sentAt) return false;
       if (r.welcomeStatus === 'SENDING') return false; // stuck mid-send; needs human review
       if (dryRun && r.welcomeStatus === 'DRAFTED') return false; // don't re-draft
       return true;
     });
+    const sheet = ss_().getSheetByName(TRACKER_SHEET);
     for (let i = 0; i < eligible.length; i++) {
+      const row = eligible[i];
+      const email = String(row.email).trim().toLowerCase();
+      if (email && emailOwner[email] !== row.hireId) {
+        const firstTime = row.welcomeStatus !== 'DUPLICATE';
+        writeBack_(sheet, row, { status: 'DUPLICATE', error: 'duplicate of ' + emailOwner[email] });
+        if (firstTime) {
+          log_(runId, row.hireId, 'DUPLICATE', 'duplicate of ' + emailOwner[email]);
+          alertAdmin('Duplicate hire row ' + row.hireId,
+            'Email already claimed by ' + emailOwner[email] + '. Fix the row; it will send on the next run once corrected.');
+        }
+        continue;
+      }
       if (!dryRun && MailApp.getRemainingDailyQuota() < QUOTA_FLOOR) {
         log_(runId, '-', 'QUOTA_HOLD', (eligible.length - i) + ' row(s) held; retry next run');
         break;
       }
-      processRow_(eligible[i], cfg, dryRun, runId);
+      processRow_(row, cfg, dryRun, runId);
     }
     setConfigValue('last_run_at', new Date().toISOString());
     setConfigValue('mail_quota_remaining', MailApp.getRemainingDailyQuota());

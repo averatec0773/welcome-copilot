@@ -40,6 +40,7 @@ a { color: var(--accent); }
 .badge.DRAFTED { background: #fdf1e3; color: var(--drafted); }
 .badge.INVALID, .badge.ERROR { background: #fbeae8; color: var(--error); }
 .badge.SENDING { background: #e8eefc; color: var(--sending); }
+.badge.DUPLICATE { background: #fdf1e3; color: var(--drafted); }
 .badge.LIVE { background: #e5f4ec; color: var(--sent); }
 .badge.DRY_RUN { background: #f1efeb; color: var(--muted); }
 .badge.neutral { background: #f1efeb; color: var(--muted); }

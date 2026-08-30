@@ -36,6 +36,7 @@ function dailyDigest() {
     'Emails sent: ' + count('SEND'),
     'Drafts created (dry-run): ' + count('DRAFT'),
     'Invalid rows: ' + count('INVALID'),
+    'Duplicate rows: ' + count('DUPLICATE'),
     'Pipeline errors: ' + count('ERROR'),
     'Runs skipped (lock busy): ' + count('LOCK_BUSY'),
     'Runs hitting quota floor: ' + count('QUOTA_HOLD'),
