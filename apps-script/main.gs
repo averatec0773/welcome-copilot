@@ -128,7 +128,9 @@ function sendVisitorCopy_(row, msg, runId) {
     cache.remove(key);
     log_(runId, row.hireId, 'DEMO_COPY', 'visitor copy sent');
   } catch (e) {
-    Logger.log('Demo visitor copy failed: ' + e);
+    // Redacted like every other log line here — never let a stray address
+    // (the visitor's or GmailApp's own error text) land in Stackdriver logs.
+    Logger.log('Demo visitor copy failed: ' + (e && e.name ? e.name : 'error'));
   }
 }
 

@@ -9,10 +9,13 @@ const ERROR_MESSAGES: Record<string, string> = {
   rate_limited: "One simulation at a time, and a handful per hour across all visitors. Try again shortly.",
   limiter_unavailable: "The rate limiter is unavailable right now — try again in a moment.",
   demo_backlog: "There are already several demo hires mid-pipeline. Give them a few minutes to finish, then retry.",
+  dry_run_mode: "The pipeline is in dry-run (rehearsal) mode right now — simulation is paused.",
   quota_low: "Today's mail quota is running low, so live sends are paused for now. Try again tomorrow.",
   sheet_unavailable: "Couldn't read the tracker sheet — try again in a moment.",
   append_failed: "Couldn't append the row — try again in a moment.",
 };
+
+const MAX_POLL_ATTEMPTS = 36; // 36 × 10s ≈ 6 minutes
 
 function UnlockForm({ onUnlocked }: { onUnlocked: () => void }) {
   const [code, setCode] = useState("");
@@ -88,48 +91,58 @@ export default function SimulatePage() {
   const [result, setResult] = useState<SimulateResult | null>(null);
   const [hire, setHire] = useState<Hire | null>(null);
   const [outboxEmail, setOutboxEmail] = useState<OutboxEmail | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // "polling" until a terminal outcome: the email lands (outboxEmail set),
+  // the pipeline flags the row (INVALID/DUPLICATE), or the attempt cap trips.
+  const [pollStatus, setPollStatus] = useState<"polling" | "timeout" | "flagged">("polling");
+  const attemptsRef = useRef(0);
 
   useEffect(() => {
     fetch("/api/unlock").then((r) => r.json()).then((j) => setUnlocked(!!j.unlocked)).catch(() => setUnlocked(false));
   }, []);
 
   // Once a row is appended, poll the tracker for the alias's status, then once
-  // it's SENT, poll the outbox for the archived email and stop.
+  // it's SENT, poll the outbox for the archived email and stop. Also stops on
+  // a terminal tracker status (INVALID/DUPLICATE — the guard did its job) or
+  // after MAX_POLL_ATTEMPTS, so a stuck row never polls forever.
   useEffect(() => {
-    if (!result || outboxEmail) return;
+    if (!result || outboxEmail || pollStatus !== "polling") return;
+    let alive = true;
     async function tick() {
+      attemptsRef.current += 1;
+      if (attemptsRef.current > MAX_POLL_ATTEMPTS) {
+        if (alive) setPollStatus("timeout");
+        return;
+      }
       try {
         const tRes = await fetch("/api/tracker");
         const tJson = await tRes.json();
         const hires: Hire[] = tJson.hires ?? [];
         const found = hires.find((h) => h.email.toLowerCase() === result!.alias.toLowerCase());
+        if (!alive) return;
         if (found) setHire(found);
+        if (found?.welcomeStatus === "INVALID" || found?.welcomeStatus === "DUPLICATE") {
+          setPollStatus("flagged");
+          return;
+        }
         if (found?.welcomeStatus === "SENT") {
           const oRes = await fetch("/api/outbox");
           const oJson = await oRes.json();
           const emails: OutboxEmail[] = oJson.emails ?? [];
           const email = emails.find((e) => e.to.toLowerCase() === result!.alias.toLowerCase());
-          if (email) setOutboxEmail(email);
+          if (email && alive) setOutboxEmail(email);
         }
       } catch {
-        /* transient — the next tick will retry */
+        /* transient — the next tick will retry, and still counts toward the cap */
       }
     }
     tick();
-    pollRef.current = setInterval(tick, 10_000);
+    const id = setInterval(tick, 10_000);
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      alive = false;
+      clearInterval(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [result, outboxEmail]);
-
-  useEffect(() => {
-    if (outboxEmail && pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  }, [outboxEmail]);
+  }, [result, outboxEmail, pollStatus]);
 
   async function submit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -152,6 +165,8 @@ export default function SimulatePage() {
         setResult(j);
         setHire(null);
         setOutboxEmail(null);
+        attemptsRef.current = 0;
+        setPollStatus("polling");
       }
     } catch {
       setError("Network error — please retry.");
@@ -244,7 +259,7 @@ export default function SimulatePage() {
           <div style={{ fontSize: 14, color: "var(--muted)" }}>
             {result.poked
               ? "Pipeline nudged — usually under 30s."
-              : "Nudge failed — the 5-minute timer will pick it up."}
+              : "Nudge failed — the 5-minute timer will pick it up (if you asked for a copy, it may not arrive in that case)."}
           </div>
           <div style={{ fontSize: 14 }}>
             Status:{" "}
@@ -254,6 +269,17 @@ export default function SimulatePage() {
               <span style={{ color: "var(--muted)" }}>waiting for the pipeline…</span>
             )}
           </div>
+          {pollStatus === "flagged" && hire?.welcomeStatus && (
+            <p style={{ fontSize: 13, color: "var(--error)", margin: 0 }}>
+              The pipeline flagged this row as {hire.welcomeStatus} — that&rsquo;s the guard
+              working; see the Tracker.
+            </p>
+          )}
+          {pollStatus === "timeout" && (
+            <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
+              Taking longer than expected — check the Tracker tab.
+            </p>
+          )}
           {outboxEmail && (
             <div style={{ display: "grid", gap: 8 }}>
               <div style={{ padding: "10px 12px", borderRadius: "var(--radius)", border: "1px solid var(--border)" }}>
@@ -276,6 +302,8 @@ export default function SimulatePage() {
               setHire(null);
               setOutboxEmail(null);
               setFirstName("");
+              attemptsRef.current = 0;
+              setPollStatus("polling");
             }}
             style={{
               justifySelf: "start", padding: "8px 14px", borderRadius: "var(--radius)",

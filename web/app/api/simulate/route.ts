@@ -47,17 +47,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: { "Retry-After": "600" } });
   }
 
-  // Capacity guards — never let the demo pile up unreviewed rows or run the
-  // real mailbox out of its daily quota.
+  // Capacity guards — never let the demo pile up unreviewed rows, run while
+  // the pipeline is rehearsing instead of sending, or run the real mailbox
+  // out of its daily quota.
   try {
+    // Row 5000 is well past what 7-day demo-row archiving (apps-script/monitoring.gs
+    // archiveDemoRows_) plus normal hiring volume should ever reach — this just
+    // keeps the cap from silently truncating a sheet that outgrows the old 500.
     const [trackerValues, configValues] = await Promise.all([
-      readRange("Tracker!A1:L500"),
+      readRange("Tracker!A1:L5000"),
       readRange("Config!A1:B20"),
     ]);
     if (countPendingDemoRows(mapTrackerRows(trackerValues)) >= 5) {
       return NextResponse.json({ error: "demo_backlog" }, { status: 503 });
     }
-    if (isQuotaLow(mapConfig(configValues))) {
+    const cfg = mapConfig(configValues);
+    // Fail closed like the pipeline itself: anything other than exactly "FALSE"
+    // means dry-run, so simulate would just create an invisible Gmail draft.
+    if ((cfg.dry_run ?? "").toUpperCase() !== "FALSE") {
+      return NextResponse.json({ error: "dry_run_mode" }, { status: 503 });
+    }
+    if (isQuotaLow(cfg)) {
       return NextResponse.json({ error: "quota_low" }, { status: 503 });
     }
   } catch (e) {
@@ -77,7 +87,9 @@ export async function POST(req: NextRequest) {
   }
 
   // Best-effort nudge — the 5-minute Apps Script trigger picks this row up
-  // regardless, so a failed poke never blocks the response.
+  // regardless, so a failed poke never blocks the response. The webhook runs
+  // the whole pipeline synchronously before responding, so give it real
+  // headroom — 10s could time out on a normal run and misreport poked:false.
   let poked = false;
   const webhookUrl = process.env.GAS_WEBHOOK_URL;
   if (webhookUrl) {
@@ -86,7 +98,7 @@ export async function POST(req: NextRequest) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: process.env.SIMULATE_TOKEN ?? "", alias, visitorEmail }),
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(25000),
       });
       if (res.ok) {
         const j = await res.json().catch(() => null);

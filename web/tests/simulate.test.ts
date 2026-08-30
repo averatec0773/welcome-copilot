@@ -41,7 +41,7 @@ describe("buildSimulateRow", () => {
     expect(email).toBe(alias);
     expect(LICENSES).toContain(license);
     expect(STATES).toContain(state);
-    expect(startDate).toMatch(/^\d{1,2}\/\d{1,2}\/\d{4}$/);
+    expect(startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(manager).toBe(MANAGER);
     expect(status).toBe("Hired");
     expect(sentAt).toBe("");
@@ -50,12 +50,14 @@ describe("buildSimulateRow", () => {
     expect(isDemo).toBe(true);
   });
 
-  it("sets start_date to 14 days from today", () => {
+  it("sets start_date to 14 days from today, in ISO YYYY-MM-DD", () => {
     const { row } = buildSimulateRow("Sam");
     const expected = new Date();
     expected.setDate(expected.getDate() + 14);
-    const expectedStr = `${expected.getMonth() + 1}/${expected.getDate()}/${expected.getFullYear()}`;
-    expect(row[5]).toBe(expectedStr);
+    const y = expected.getFullYear();
+    const m = String(expected.getMonth() + 1).padStart(2, "0");
+    const d = String(expected.getDate()).padStart(2, "0");
+    expect(row[5]).toBe(`${y}-${m}-${d}`);
   });
 
   it("generates a unique gmail + alias for each call", () => {
@@ -95,6 +97,16 @@ describe("countPendingDemoRows", () => {
       hire({ isDemo: true, welcomeSentAt: "8/1/2026" }),
       hire({ isDemo: false, welcomeSentAt: "" }),
       hire({ isDemo: true, welcomeSentAt: "" }),
+    ];
+    expect(countPendingDemoRows(hires)).toBe(2);
+  });
+
+  it("excludes terminal rows (INVALID, DUPLICATE) — they'll never send or clear on their own", () => {
+    const hires = [
+      hire({ isDemo: true, welcomeSentAt: "", welcomeStatus: "INVALID" }),
+      hire({ isDemo: true, welcomeSentAt: "", welcomeStatus: "DUPLICATE" }),
+      hire({ isDemo: true, welcomeSentAt: "", welcomeStatus: "" }),
+      hire({ isDemo: true, welcomeSentAt: "", welcomeStatus: "SENDING" }),
     ];
     expect(countPendingDemoRows(hires)).toBe(2);
   });

@@ -35,8 +35,14 @@ export function buildAliasEmail(hex: string): string {
   return `ayetek0773+demo-${hex}@gmail.com`;
 }
 
+// ISO 'YYYY-MM-DD' — Sheets' USER_ENTERED input parses this as a date
+// regardless of the spreadsheet's locale; 'M/D/YYYY' is locale-dependent and
+// can silently land as text (or the wrong date) on a non-US-locale sheet.
 function formatStartDate(d: Date): string {
-  return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 export type SimulateRow = { row: (string | boolean)[]; name: string; alias: string };
@@ -57,8 +63,13 @@ export function buildSimulateRow(firstNameInput: string | undefined | null): Sim
   return { row, name, alias };
 }
 
+// Terminal rows (INVALID, DUPLICATE) are done — they'll never send and never
+// clear on their own, so counting them toward the backlog would eventually
+// lock the demo out permanently over a row nobody is going to fix.
 export function countPendingDemoRows(hires: Hire[]): number {
-  return hires.filter((h) => h.isDemo && !h.welcomeSentAt).length;
+  return hires.filter(
+    (h) => h.isDemo && !h.welcomeSentAt && h.welcomeStatus !== "INVALID" && h.welcomeStatus !== "DUPLICATE",
+  ).length;
 }
 
 export function isQuotaLow(config: Record<string, string>): boolean {

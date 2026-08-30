@@ -16,6 +16,18 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false })).setMimeType(ContentService.MimeType.JSON);
   }
 
+  // Crude throttle: not atomic (a read-then-write race under truly concurrent
+  // hits could let a couple extra through), but good enough to stop a burst
+  // of requests — wrong token or not — from silently burning through quota-
+  // sensitive work (runPipeline calls) before the per-IP/global web limiters
+  // even get a chance to matter.
+  const cache = CacheService.getScriptCache();
+  const hits = Number(cache.get('wh-hits') || 0);
+  if (hits >= 10) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false })).setMimeType(ContentService.MimeType.JSON);
+  }
+  cache.put('wh-hits', String(hits + 1), 60);
+
   const expected = props_().getProperty('SIMULATE_TOKEN');
   if (!expected || !tokensMatch_(String(body.token || ''), expected)) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false })).setMimeType(ContentService.MimeType.JSON);
@@ -24,7 +36,7 @@ function doPost(e) {
   const alias = String(body.alias || '').trim();
   const visitorEmail = String(body.visitorEmail || '').trim();
   if (alias && visitorEmail && EMAIL_RE.test(visitorEmail)) {
-    CacheService.getScriptCache().put('demo-copy:' + alias.toLowerCase(), visitorEmail, 21600);
+    cache.put('demo-copy:' + alias.toLowerCase(), visitorEmail, 21600);
   }
 
   try {
