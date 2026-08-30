@@ -224,8 +224,6 @@ export default function TrackerPage() {
   const [modalMounted, setModalMounted] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  if (error) return <p className="card">Tracker unavailable: {error}</p>;
-  if (!data) return <p>Loading tracker…</p>;
 
   function openSimulate() {
     if (unlocked === null) return; // access check still in flight
@@ -239,8 +237,20 @@ export default function TrackerPage() {
     setModalVisible(true);
   }
 
+  // No early returns: the simulate modal (and SimulatePanel's in-flight
+  // polling) must survive a transient poll error, so error and loading are
+  // rendered as states inside the one tree the modal lives in.
   return (
     <section>
+      {error && (
+        <p className="card" style={{ marginBottom: 14 }}>
+          Tracker unavailable: {error}
+          {data ? " Showing the last loaded data." : ""}
+        </p>
+      )}
+      {!data && !error && <p>Loading tracker…</p>}
+      {data && (
+        <>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
           <h2 style={{ margin: 0 }}>Tracker</h2>
@@ -286,7 +296,6 @@ export default function TrackerPage() {
                   <tr
                     className="tracker-row"
                     tabIndex={0}
-                    role="button"
                     aria-expanded={open}
                     onClick={() => setExpandedId(open ? null : key)}
                     onKeyDown={(e) => {
@@ -326,6 +335,8 @@ export default function TrackerPage() {
       </div>
       <StatusLegend />
       <LifecycleStrip />
+        </>
+      )}
       {modalMounted && <SimulateModal visible={modalVisible} onClose={() => setModalVisible(false)} />}
     </section>
   );

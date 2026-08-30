@@ -31,7 +31,7 @@ body {
 }
 
 h1, h2, h3 {
-  font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+  font-family: var(--font-serif, Georgia), Georgia, "Times New Roman", serif;
   color: var(--accent-ink);
   font-weight: 600;
 }
@@ -102,9 +102,6 @@ table.data tr:last-child td { border-bottom: none; }
 
 .outbox-grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
-.hide-sm { }
-.hide-md { }
-
 .tracker-row { cursor: pointer; }
 .tracker-row:hover { background: var(--accent-soft); }
 .tracker-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }

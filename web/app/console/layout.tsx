@@ -123,7 +123,7 @@ function ConsoleChrome({ children }: { children: React.ReactNode }) {
           href="/"
           style={{
             textDecoration: "none", fontWeight: 600, color: "var(--accent-ink)",
-            fontFamily: "var(--font-serif), Georgia, serif", fontSize: 20,
+            fontFamily: "var(--font-serif, Georgia), Georgia, serif", fontSize: 20,
           }}
         >
           Welcome Copilot
