@@ -126,7 +126,9 @@ Environment variables (`web/.env.local` for local dev, Vercel project env vars f
 | `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token. |
 | `DEMO_ACCESS_CODE` | Invite code gating free-form assistant questions. |
 | `HEALTHCHECKS_BADGE_URL` | Optional. Public status badge URL shown on the Health page. |
-| `AUDIT_SHEET_ID` | Optional. ID of a private Google Sheet (not the public demo tracker) to log security-relevant events to. Unset disables audit logging entirely. |
+| `GAS_WEBHOOK_URL` | Optional. The Apps Script web-app URL that `/api/simulate` pokes for an instant pipeline run instead of waiting for the 5-minute trigger. |
+| `SIMULATE_TOKEN` | Optional (required alongside `GAS_WEBHOOK_URL`). Shared secret sent with that poke; must match the Apps Script project's `SIMULATE_TOKEN` Script Property of the same name. |
+| `AUDIT_SHEET_ID` | Optional. ID of a private Google Sheet (not the public demo tracker) that logs unlock attempts, assistant questions and answers, and simulate runs. Unset disables audit logging entirely. |
 
 ```
 cd web

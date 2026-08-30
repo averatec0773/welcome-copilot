@@ -133,6 +133,40 @@ primary control.
 **Revisit when:** this is a demo-scale pattern — a real deployment behind
 company SSO wouldn't need an invite code at all, just auth.
 
+## Audit & demo instrumentation
+
+**Choice:** two things ride alongside the public-facing features. First,
+every gated action (`unlock`, `ask`, `simulate`) appends one row to a
+private Google Sheet nothing else in the demo reads from or writes to:
+timestamp, event type, a truncated IP, a truncated user-agent, and an
+event-specific detail — the full question and answer text for the
+assistant, just the generated demo name/alias and the visitor's email
+domain (never the full address) for a simulate run. None of it is ever
+surfaced in any UI. Second, Simulate's optional visitor-copy address is
+never written to the shared Tracker: it's forwarded once to the Apps
+Script webhook, cached there for 6 hours keyed to that row, sent exactly
+once after the real send completes, then deleted, carrying a one-time
+footer explaining why the visitor got it.
+**Alternative:** no audit trail at all (read server logs by hand instead),
+or store the visitor-copy address on the Tracker row itself or in Redis
+rather than an ephemeral Apps Script cache.
+**Why:** this is a public demo with no authenticated users behind it — the
+operator otherwise has no way to see whether the assistant is getting
+reasonable questions, whether Simulate is being abused, or whether the
+access code has leaked, short of reading raw server logs. A private,
+fire-and-forget append gives that visibility without exposing anything
+back to visitors and without ever blocking the request it's logging
+(missing config or a failed append just no-ops). The visitor-copy address,
+separately, has no reason to outlive the one email it's used for or to
+ever sit next to real hiring data, so a 6-hour self-deleting cache on the
+same side that already sends the email is simpler than a separate store
+that would need its own security and cleanup.
+**Revisit when:** this stops being a single-operator demo (real
+multi-operator access needs actual access control on the audit log, not
+just "it's a different sheet"), or the visitor copy needs to persist past
+one send (a resend feature, a delivery audit trail) — either turns an
+ephemeral-cache problem into a real data-retention decision.
+
 ## PII, not PHI
 
 Everything this system touches (name, email, license type, state, start
@@ -147,9 +181,13 @@ the data is: redact identifying values out of logs before they're written
 (the pipeline's Log tab carries `hire_id`, never a name or address),
 keep secrets out of code and out of the spreadsheet (Script Properties, not
 cells or source), and minimize what any given surface can see (the console
-reads the sheet through a read-only service account; the assistant is
-scoped to policy documents and explicitly refuses anything that smells like
-client data). Those are the same habits a PHI-adjacent system needs. This
+is read-only throughout, with one gated exception: `/api/simulate` appends
+demo rows behind the same invite code as the assistant, plus rate limits
+and backlog/quota/dry-run guards; the service account therefore holds
+write scope, used only by that append and by the private audit log; the
+assistant itself is scoped to policy documents and explicitly refuses
+anything that smells like client data). Those are the same habits a
+PHI-adjacent system needs. This
 demo just doesn't need to earn that trust to prove it understands the
 shape of the problem.
 

@@ -12,9 +12,11 @@ tool), plus a bound Google Apps Script project on a 5-minute time trigger
 that reads rows marked `Hired`, validates them, renders a welcome email,
 archives it, and sends it through Gmail. A small Next.js console (deployed
 to Vercel) gives a read-only view of the pipeline: a tracker, a sent-email
-archive, and a health page, plus a Claude-backed assistant that answers new-hire
-questions from a handbook, so the welcome email isn't the end of onboarding
-help, it's the start of it.
+archive, a health page, and a gated Simulate tab (one real demo-row append
+that pokes the pipeline end-to-end — the console's only write path, else
+read-only throughout), plus a Claude-backed assistant that answers
+new-hire questions from a handbook, so the welcome email isn't the end of
+onboarding help, it's the start of it.
 
 I'd skip Zapier or n8n here. Both are fine for wiring two SaaS tools
 together with no code, but this task needs branching logic (three kinds of

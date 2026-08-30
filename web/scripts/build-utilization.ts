@@ -122,7 +122,9 @@ function runValidations(byMonth: Map<string, Row[]>): Validation[] {
     out.push({
       check: "Every clinician_id matches the known roster",
       status: unknown.size === 0 ? "pass" : "warn",
-      detail: unknown.size === 0 ? "All clinician_ids match the roster." : `Unknown clinician_id(s): ${listed}.`,
+      detail: unknown.size === 0
+        ? "All clinician_ids match the roster."
+        : `Unknown clinician_id(s): ${listed} (excluded from the totals below).`,
     });
   }
 

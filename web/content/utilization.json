@@ -23,7 +23,7 @@
     {
       "check": "Every clinician_id matches the known roster",
       "status": "warn",
-      "detail": "Unknown clinician_id(s): C-099 (Dana Whitfield) on 2026-08-17."
+      "detail": "Unknown clinician_id(s): C-099 (Dana Whitfield) on 2026-08-17 (excluded from the totals below)."
     },
     {
       "check": "sessions > 0 on every row",
