@@ -14,6 +14,7 @@ What to try:
 - Open an email in the **Outbox** — every send is archived byte-for-byte, drafts included.
 - Check **Health** — the pipeline's dead-man's-switch, quota, and run log.
 - Ask the assistant one of its suggested questions — answered from the handbook with citations, no API cost.
+- Open **Utilization** — a validated CSV-export report, no API involved at all.
 
 Free-form questions are gated behind an access code from the application materials.
 
@@ -67,6 +68,22 @@ Three independent defenses, because monitoring that depends on the thing it's wa
 - The four suggested questions are answered from a prebaked cache — zero API calls.
 - Free-form questions require an invite code.
 - Per-IP and daily global rate caps sit behind the code as defense-in-depth.
+
+## Utilization slice — the no-API craft: validated manual exports → SQL → report
+
+Several core clinical and billing systems in a real practice expose no API — only a
+scheduled manual CSV export. The **Utilization** console tab treats that export as the
+interface instead of pretending it doesn't exist: two mock monthly billing exports
+(`web/data/billing-export-2026-0{7,8}.csv`) are loaded into an in-memory SQLite database
+via [sql.js](https://github.com/sql-js/sql.js) at build time, run through a set of loud
+validations (row counts, date ranges, duplicate rows, unknown clinician ids against a
+hardcoded roster, positive sessions, month-over-month drift), then through one readable
+SQL query (`web/data/utilization.sql`) that computes sessions, billed hours, utilization
+against a 25h/week caseload target, and the change from the prior month. The seeded
+anomaly — an unknown `clinician_id` in the August export — is caught and surfaced in the
+page's validation banner, not silently dropped. Everything runs in `npm run prebuild`
+and is committed as static JSON (`web/content/utilization.json`); the page itself is a
+server component with zero runtime cost.
 
 ## Repo layout
 

@@ -9,6 +9,7 @@ const TABS = [
   { href: "/console/health", label: "Health" },
   { href: "/console/assistant", label: "Assistant" },
   { href: "/console/simulate", label: "Simulate" },
+  { href: "/console/utilization", label: "Utilization" },
 ];
 
 const SHEET_URL =

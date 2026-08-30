@@ -1,0 +1,132 @@
+{
+  "generatedAt": "2026-08 build",
+  "months": [
+    "2026-07",
+    "2026-08"
+  ],
+  "validations": [
+    {
+      "check": "Row count per month within expected range (40-80)",
+      "status": "pass",
+      "detail": "All months in range (2026-07: 65, 2026-08: 60)."
+    },
+    {
+      "check": "All dates fall inside their export's month",
+      "status": "pass",
+      "detail": "No stray dates."
+    },
+    {
+      "check": "No exact-duplicate rows",
+      "status": "pass",
+      "detail": "No duplicates found."
+    },
+    {
+      "check": "Every clinician_id matches the known roster",
+      "status": "warn",
+      "detail": "Unknown clinician_id(s): C-099 (Dana Whitfield) on 2026-08-17."
+    },
+    {
+      "check": "sessions > 0 on every row",
+      "status": "pass",
+      "detail": "All rows have positive sessions."
+    },
+    {
+      "check": "Month-over-month total-sessions drift within 40%",
+      "status": "pass",
+      "detail": "Drift within range for all consecutive months."
+    }
+  ],
+  "rows": [
+    {
+      "clinicianId": "C-001",
+      "clinician": "Maria Chen",
+      "month": "2026-07",
+      "sessionsTotal": 75,
+      "hours": 66.3,
+      "utilizationPct": 66,
+      "momDeltaPct": null
+    },
+    {
+      "clinicianId": "C-001",
+      "clinician": "Maria Chen",
+      "month": "2026-08",
+      "sessionsTotal": 69,
+      "hours": 60.6,
+      "utilizationPct": 61,
+      "momDeltaPct": -8.6
+    },
+    {
+      "clinicianId": "C-002",
+      "clinician": "James Okafor",
+      "month": "2026-07",
+      "sessionsTotal": 83,
+      "hours": 73.2,
+      "utilizationPct": 73,
+      "momDeltaPct": null
+    },
+    {
+      "clinicianId": "C-002",
+      "clinician": "James Okafor",
+      "month": "2026-08",
+      "sessionsTotal": 67,
+      "hours": 59.1,
+      "utilizationPct": 59,
+      "momDeltaPct": -19.3
+    },
+    {
+      "clinicianId": "C-003",
+      "clinician": "Sarah Kim",
+      "month": "2026-07",
+      "sessionsTotal": 73,
+      "hours": 64.6,
+      "utilizationPct": 65,
+      "momDeltaPct": null
+    },
+    {
+      "clinicianId": "C-003",
+      "clinician": "Sarah Kim",
+      "month": "2026-08",
+      "sessionsTotal": 73,
+      "hours": 64.5,
+      "utilizationPct": 65,
+      "momDeltaPct": -0.2
+    },
+    {
+      "clinicianId": "C-004",
+      "clinician": "Priya Natarajan",
+      "month": "2026-07",
+      "sessionsTotal": 53,
+      "hours": 46.8,
+      "utilizationPct": 47,
+      "momDeltaPct": null
+    },
+    {
+      "clinicianId": "C-004",
+      "clinician": "Priya Natarajan",
+      "month": "2026-08",
+      "sessionsTotal": 42,
+      "hours": 37.1,
+      "utilizationPct": 37,
+      "momDeltaPct": -20.7
+    },
+    {
+      "clinicianId": "C-005",
+      "clinician": "Emily Tran",
+      "month": "2026-07",
+      "sessionsTotal": 74,
+      "hours": 65.3,
+      "utilizationPct": 65,
+      "momDeltaPct": null
+    },
+    {
+      "clinicianId": "C-005",
+      "clinician": "Emily Tran",
+      "month": "2026-08",
+      "sessionsTotal": 80,
+      "hours": 70.4,
+      "utilizationPct": 70,
+      "momDeltaPct": 7.8
+    }
+  ],
+  "sqlText": "-- Utilization report: sessions, billed hours, and utilization % against a\n-- 25h/week caseload target (25 * 4 weeks = 100h/month), per clinician per\n-- month, plus the change from the prior month in this export.\n--\n-- Input: table `billing` (date, clinician_id, clinician, state, sessions,\n-- billed_minutes, payer) loaded from the monthly CSV exports.\n\nWITH roster AS (\n  -- Hardcoded roster — the source of truth for \"who's actually on the\n  -- team,\" independent of whatever clinician_ids show up in an export.\n  -- Anything in `billing` but not here (e.g. a mistyped or unknown id) is\n  -- caught separately by the build script's validations, not silently\n  -- folded into anyone's numbers here.\n  SELECT 'C-001' AS clinician_id, 'Maria Chen'      AS clinician UNION ALL\n  SELECT 'C-002',                 'James Okafor'                UNION ALL\n  SELECT 'C-003',                 'Sarah Kim'                   UNION ALL\n  SELECT 'C-004',                 'Priya Natarajan'             UNION ALL\n  SELECT 'C-005',                 'Emily Tran'\n),\n\nmonthly AS (\n  -- One row per clinician per month: total sessions, total billed hours.\n  SELECT\n    r.clinician_id,\n    r.clinician,\n    substr(b.date, 1, 7)                     AS month,          -- 'YYYY-MM'\n    SUM(b.sessions)                          AS sessions_total,\n    ROUND(SUM(b.billed_minutes) / 60.0, 1)   AS hours\n  FROM billing b\n  JOIN roster r ON r.clinician_id = b.clinician_id\n  GROUP BY r.clinician_id, r.clinician, month\n),\n\nscored AS (\n  -- Utilization against the 100h/month target caseload.\n  SELECT\n    *,\n    ROUND(hours / 100.0 * 100, 0) AS utilization_pct\n  FROM monthly\n)\n\nSELECT\n  s.clinician_id,\n  s.clinician,\n  s.month,\n  s.sessions_total,\n  s.hours,\n  s.utilization_pct,\n  -- Change vs. the same clinician's immediately prior month. NULL when\n  -- there's no prior month in this export (every July row, or a clinician\n  -- who only appears starting in August).\n  CASE\n    WHEN p.hours IS NULL OR p.hours = 0 THEN NULL\n    ELSE ROUND((s.hours - p.hours) / p.hours * 100, 1)\n  END AS mom_delta_pct\nFROM scored s\nLEFT JOIN scored p\n  ON p.clinician_id = s.clinician_id\n  AND p.month = strftime('%Y-%m', date(s.month || '-01', '-1 month'))\nORDER BY s.clinician_id, s.month;\n"
+}
