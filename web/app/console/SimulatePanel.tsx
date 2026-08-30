@@ -185,16 +185,17 @@ export default function SimulatePanel() {
       <h2 style={{ marginBottom: 8 }}>Simulate a hire</h2>
       <Explain {...EXPLAIN_PROPS} />
       <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>
-        The welcome email always goes to a + alias of the author&rsquo;s own inbox, so the demo
-        never emails a stranger. If you&rsquo;d like to read it in your own inbox too, tick the
-        box below and you get one copy of the same email. Your address never appears anywhere
-        public: the sheet and the console only ever show the alias. No list, no follow-up.
+        The first name you type is recorded on the public shared sheet, so make one up rather
+        than using a real one. The welcome email itself goes to a + alias of the
+        author&rsquo;s own inbox, never to a stranger. Want to read it in your own inbox too?
+        Tick the box below: in every public record your address is replaced by an alias, but
+        the copy arrives in your real inbox. No list, no follow-up.
       </p>
 
       {!result && (
         <form onSubmit={submit} className="card" style={{ display: "grid", gap: 12 }}>
           <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
-            First name (optional)
+            First name (optional, make one up)
             <input
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
