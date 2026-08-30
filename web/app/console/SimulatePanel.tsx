@@ -22,7 +22,7 @@ type SimulateStatus = {
 
 const ERROR_MESSAGES: Record<string, string> = {
   locked: "This needs an access code. Enter it in the console header.",
-  invalid_name: "Names use letters only (the first word is what gets greeted). Try something like Riley.",
+  invalid_name: "Couldn't use that as a name. Try something like Riley.",
   rate_limited: "Rate limited. Each visitor can simulate 10 times an hour, and the whole demo 3 times per 10 minutes. Try again in a bit.",
   limiter_unavailable: "The rate limiter is unavailable right now. Try again in a moment.",
   demo_backlog: "There are already several demo hires mid-pipeline. Give them a few minutes to finish, then retry.",

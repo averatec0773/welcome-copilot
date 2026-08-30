@@ -6,8 +6,10 @@ import {
 import type { Hire } from "@/lib/sheets";
 
 describe("sanitizeFirstName", () => {
-  it("keeps a valid first name as-is", () => {
-    expect(sanitizeFirstName("Riley")).toBe("Riley");
+  it("keeps names as typed, in any language", () => {
+    for (const name of ["Riley", "Éloïse", "José", "Müller", "陈小明", "O'Brien", "Anne-Marie"]) {
+      expect(sanitizeFirstName(name)).toBe(name);
+    }
   });
 
   it("falls back to a random preset name only for empty/missing input", () => {
@@ -17,25 +19,24 @@ describe("sanitizeFirstName", () => {
   });
 
   it("takes the first word of a multi-word name instead of substituting a random one", () => {
-    // Regression: "Scott H" used to fail the letters-only regex and silently
+    // Regression: "Scott H" used to fail a letters-only regex and silently
     // become a random preset name in the email greeting.
     expect(sanitizeFirstName("Scott H")).toBe("Scott");
     expect(sanitizeFirstName("  Anne-Marie Lu ")).toBe("Anne-Marie");
   });
 
-  it("strips stray digits/symbols and keeps internal apostrophes and hyphens", () => {
-    expect(sanitizeFirstName("Riley!")).toBe("Riley");
-    expect(sanitizeFirstName("Ri1ey")).toBe("Riey");
-    expect(sanitizeFirstName("D'Angelo")).toBe("D'Angelo");
-    expect(sanitizeFirstName("-Riley-")).toBe("Riley");
+  it("strips leading formula triggers so USER_ENTERED can't plant a live formula", () => {
+    expect(sanitizeFirstName("=SUM(A1:B2)")).toBe("SUM(A1:B2)");
+    expect(sanitizeFirstName("+Riley")).toBe("Riley");
+    expect(sanitizeFirstName("@Riley")).toBe("Riley");
   });
 
   it("caps at 20 characters", () => {
     expect(sanitizeFirstName("a".repeat(21))).toBe("a".repeat(20));
   });
 
-  it("returns null (never a substitute) when non-empty input has no usable letters", () => {
-    for (const junk of ["123", "!!!", "'-'", "@@@"]) {
+  it("returns null (never a substitute) only when nothing usable remains", () => {
+    for (const junk of ["===", "@@@", "+++"]) {
       expect(sanitizeFirstName(junk)).toBeNull();
     }
   });

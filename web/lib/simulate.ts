@@ -16,20 +16,24 @@ function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// The visitor's own word goes into the email greeting, so extract rather than
-// reject: take the first word, keep letters plus internal hyphens/apostrophes
-// (D'Angelo, Anne-Marie), cap at 20 chars. Empty input gets a random preset
-// name, as the form promises. Non-empty input that yields nothing usable
-// returns null so the route can say so — never silently greet a stranger's
-// name in an email the visitor may receive themselves.
+// The greeting takes whatever the visitor calls themselves — Éloïse, José,
+// 陈, O'Brien — so there is deliberately no character allow-list to fail.
+// Only three system guards remain: first word only (the email greets the
+// row's first word), a 20-character cap, and no leading formula trigger,
+// because the sheet append uses USER_ENTERED and a name starting with "="
+// would land in the public sheet as a live formula. HTML safety is the
+// template's job (email.gs escapes the name), not this function's.
+// Empty input gets a random preset name, as the form promises. Input that
+// is nothing but formula/control characters returns null so the route can
+// say so — never silently greet a stranger's name.
 export function sanitizeFirstName(input: string | undefined | null): string | null {
   const trimmed = (input ?? "").trim();
   if (!trimmed) return pick(FIRST_NAMES);
   const token = (trimmed.split(/\s+/)[0] ?? "")
-    .replace(/[^A-Za-z'-]/g, "")
-    .replace(/^['-]+|['-]+$/g, "")
-    .slice(0, 20);
-  return /^[A-Za-z][A-Za-z'-]*$/.test(token) ? token : null;
+    .replace(/[\p{Cc}\p{Cf}]/gu, "")
+    .replace(/^[=+@]+/, "");
+  const capped = Array.from(token).slice(0, 20).join("");
+  return capped ? capped : null;
 }
 
 export function isValidEmail(input: string | undefined | null): boolean {
