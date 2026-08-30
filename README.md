@@ -17,8 +17,8 @@ Two ways in: edit the sheet by hand (picked up within 5 minutes), or press **▶
 One button press, about thirty seconds, one real email:
 
 <p>
-  <img src="docs/walkthrough/shots/08-simulate-result.png" alt="Simulate result: row appended, SENT, email previewed in place" width="49%">
-  <img src="docs/walkthrough/shots/12-gmail.png" alt="The same email delivered to a real Gmail inbox, demo disclaimer included" width="49%">
+  <img src="docs/walkthrough/shots/08-simulate-result.png" alt="Simulate result: row appended, SENT, email previewed in place" width="33%" align="top">
+  <img src="docs/walkthrough/shots/12-gmail.png" alt="The same email delivered to a real Gmail inbox, demo disclaimer included" width="65%" align="top">
 </p>
 
 The console also has a sortable live **Tracker** with expandable candidate rows, an **Outbox** of every email archived before it was sent, an **Operator Inbox** of the alerts and digests the pipeline mails its human, a **Health** page with a dead-man's-switch badge, and an **Assistant** that answers onboarding questions from a 9-doc handbook with citations, a browsable source rail, and honest refusals.
