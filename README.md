@@ -70,7 +70,18 @@ Three independent defenses, because monitoring that depends on the thing it's wa
 |---|---|
 | `apps-script/` | The pipeline: validation, rendering, sending, monitoring. Managed with `clasp`. |
 | `web/` | Next.js ops console (Tracker, Outbox, Health) and the handbook assistant. |
-| `docs/` | Design docs — coming with the final submission. |
+| `docs/` | Design docs — see below. |
+
+## Docs
+
+- [`docs/sketch.md`](docs/sketch.md) — the practical task, answered: what
+  I'd use, what could go wrong, how I'd know it silently stopped.
+- [`docs/RUNBOOK.md`](docs/RUNBOOK.md) — for a non-technical operator: one
+  scenario at a time, no code.
+- [`docs/design.md`](docs/design.md) — the design decisions and trade-offs,
+  including the PII-vs-PHI boundary and what was consciously skipped.
+- [`docs/tracker-v2.md`](docs/tracker-v2.md) — what breaks in the
+  spreadsheet tracker at scale, and the migration path off it.
 
 ## Running it yourself
 
