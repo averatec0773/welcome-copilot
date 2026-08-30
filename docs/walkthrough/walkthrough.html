@@ -104,18 +104,19 @@
 
 <!-- 2 · How it works -->
 <div class="page">
-  <p class="eyebrow">The idea</p>
+  <p class="eyebrow">Overview</p>
   <h2>How it works</h2>
   <img class="shot" src="shots/01-landing-diagram.png" alt="Pipeline diagram from the landing page">
   <p class="shot-note">The landing page, live. Two ways in (edit the sheet, or press Simulate), one pipeline, and a watchdog layer underneath. Every chip links to the console page where that stage is visible.</p>
   <div class="cols">
     <div>
-      <h3>Things that go wrong, on purpose</h3>
+      <h3>What can go wrong, and what happens then</h3>
       <ul class="small">
         <li>A typo&rsquo;d address → <span class="badge invalid">INVALID</span>, no email leaves.</li>
         <li>The same person twice → <span class="badge dup">DUPLICATE</span>, only the first row may send.</li>
         <li>A re-sorted sheet mid-run → writes are keyed by hire ID, so results land on the right person.</li>
         <li>A crash mid-send → a SENDING marker waits for a human. Never auto-retried into a double send.</li>
+        <li>A row that has sent once will never send again: the sheet itself records every send.</li>
       </ul>
       <p class="small muted">Two of these are permanently staged in the live sheet, so the guards are always on display.</p>
     </div>
@@ -147,7 +148,7 @@
 <!-- 4 · Receipts -->
 <div class="page">
   <p class="eyebrow">The console · 2 of 3</p>
-  <h2>Receipts for everything</h2>
+  <h2>Outbox, Operator Inbox, and Health</h2>
   <img class="shot" src="shots/04-outbox.png" alt="Outbox page">
   <p class="shot-note">The Outbox: every email archived at the moment it was rendered, before the send, so even a failed send leaves evidence. What you read here is exactly what the recipient got.</p>
   <div class="cols">
@@ -166,7 +167,7 @@
 <!-- 5 · Assistant -->
 <div class="page">
   <p class="eyebrow">The console · 3 of 3</p>
-  <h2>An assistant that shows its homework</h2>
+  <h2>The assistant, with its sources open</h2>
   <img class="shot" src="shots/10-assistant-cited.png" alt="Assistant with citations and cited docs highlighted">
   <p class="shot-note">Every answer carries numbered citations, and the docs it drew from light up in the handbook rail: &ldquo;cited in the last answer&rdquo;.</p>
   <div class="cols">
@@ -186,7 +187,7 @@
 <!-- 6 · Press the button -->
 <div class="page">
   <p class="eyebrow">One hire, end to end · 1 of 2</p>
-  <h2>Press the button</h2>
+  <h2>Simulate a hire</h2>
   <p>
     Simulate appends a genuine row to the shared sheet, exactly like HR marking someone Hired,
     then triggers the pipeline immediately. The form says out loud what will happen: the typed
@@ -215,7 +216,7 @@
 <!-- 7 · Thirty seconds later -->
 <div class="page">
   <p class="eyebrow">One hire, end to end · 2 of 2</p>
-  <h2>…and here it is, everywhere it should be</h2>
+  <h2>The result: a sheet row and a real email</h2>
   <p class="step-label">In the tracker, expanded: the full candidate story</p>
   <img class="shot" src="shots/09-tracker-row.png" alt="Maya's row expanded in the tracker">
   <p class="step-label">In a real Gmail inbox, disclaimer included</p>
@@ -224,29 +225,35 @@
   <div class="footer"><span>Welcome Copilot · Walkthrough</span><span>7</span></div>
 </div>
 
-<!-- 8 · Close -->
+<!-- 8 · Components -->
 <div class="page">
-  <p class="eyebrow">Worth knowing</p>
-  <h2>The parts you can&rsquo;t screenshot</h2>
-  <ul>
-    <li><strong>It never sends twice.</strong> The sheet itself records every send, keyed by hire ID rather than row position. Re-sort it, edit it, crash mid-run: a row that sent once stays sent.</li>
-    <li><strong>It fails closed.</strong> Anything other than an explicit dry_run = FALSE means rehearsal mode: drafts, not sends.</li>
-    <li><strong>Every limit is visible.</strong> Simulations, assistant questions, mail quota: all shown with live remaining counts before anyone hits them.</li>
-    <li><strong>The assistant only knows the handbook.</strong> Growing it means writing docs the team controls, not training a model.</li>
-    <li><strong>Everything in this document is live.</strong> The sheet, the console, the emails, the badge: open the demo and press the same buttons.</li>
-  </ul>
+  <p class="eyebrow">Reference</p>
+  <h2>What runs where</h2>
+  <table>
+    <tr><th>Component</th><th>Job</th></tr>
+    <tr><td>Google Sheets (shared)</td><td>Source of truth. HR edits it directly; the pipeline writes results back into it.</td></tr>
+    <tr><td>Google Apps Script</td><td>The pipeline: validate, render, archive, send. Every 5 minutes, or immediately on Simulate.</td></tr>
+    <tr><td>Gmail</td><td>Delivery. Every email is archived to the Outbox tab before it is sent.</td></tr>
+    <tr><td>Next.js on Vercel</td><td>The read-only console, plus the one gated write path (Simulate).</td></tr>
+    <tr><td>Claude (Haiku)</td><td>The assistant: retrieval over 9 handbook docs, citations, honest refusals.</td></tr>
+    <tr><td>Upstash Redis</td><td>Rate limits, each shown to the visitor with a live remaining count.</td></tr>
+    <tr><td>healthchecks.io</td><td>Dead-man&rsquo;s switch: the pipeline pings it every run, and silence raises an alert.</td></tr>
+  </table>
+  <p class="small muted" style="margin-top: 3mm;">
+    The Apps Script pipeline and the console never talk to each other directly. They share
+    state only through the Sheet: the console reads it via a service account, and the bound
+    script owns all pipeline writes. Everything else fails closed: anything other than an
+    explicit dry_run = FALSE means drafts, never live mail.
+  </p>
   <h3>Try it yourself</h3>
   <p>
-    Open <strong>https://welcome-copilot.vercel.app</strong> and click around; the console and
-    the suggested questions are open to everyone. With the access code, press
+    Open <strong>https://welcome-copilot.vercel.app</strong>. The console and the four
+    suggested questions are open to everyone. With the access code, press
     <strong>▶ Simulate a hire</strong> and watch a real email go out in about thirty seconds.
   </p>
-  <h3>Where it would go next</h3>
   <p class="small">
-    Point the same pipeline at the real tracker behind a dry-run flag for a week, then extend
-    the pattern to the other spreadsheet-shaped handoffs around onboarding. Where a system has
-    no API (several core clinical and billing systems don&rsquo;t), treat the scheduled export
-    as the interface and validate it loudly; a working slice of that ships in this repo too.
+    Source, docs, and an operator runbook:
+    <strong>https://github.com/averatec0773/welcome-copilot</strong>
   </p>
   <p class="small muted" style="margin-top: 8mm;">
     Built with Google Apps Script, Next.js, Claude, and a healthy fear of silent failures.<br>
