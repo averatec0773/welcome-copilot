@@ -33,6 +33,26 @@ export async function readRange(range: string): Promise<string[][]> {
   return (res.data.values ?? []) as string[][];
 }
 
+// Write path — needs the full (non-readonly) spreadsheets scope. Used only by
+// the gated /api/simulate route; every other read stays on the readonly scope above.
+export async function appendTrackerRow(values: (string | boolean)[]): Promise<number> {
+  const auth = new google.auth.GoogleAuth({
+    credentials: credentials(),
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  });
+  const sheets = google.sheets({ version: "v4", auth });
+  const res = await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: "Tracker!A:L",
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [values] },
+  });
+  const updatedRange = res.data.updates?.updatedRange ?? "";
+  const m = /![A-Z]+(\d+):/.exec(updatedRange);
+  if (!m) throw new Error(`appendTrackerRow: could not parse row number from "${updatedRange}"`);
+  return parseInt(m[1], 10);
+}
+
 const cell = (r: string[], i: number) => String(r[i] ?? "");
 
 export function mapTrackerRows(values: string[][]): Hire[] {

@@ -108,7 +108,28 @@ function processRow_(row, cfg, dryRun, runId) {
   GmailApp.sendEmail(row.email, msg.subject, '', { htmlBody: msg.html, name: 'Mentella People Ops' });
   writeBack_(sheet, row, { sentAt: new Date(), status: 'SENT', error: '' });
   log_(runId, row.hireId, 'SEND', 'sent to alias');
+  sendVisitorCopy_(row, msg, runId);
   return 'SEND';
+}
+
+// "Simulate a hire" visitor copy: if someone ran the demo with their own
+// address, /api/simulate cached it under this row's email. One-time send,
+// then the key is gone — a copy failure must never break the pipeline.
+function sendVisitorCopy_(row, msg, runId) {
+  try {
+    const cache = CacheService.getScriptCache();
+    const key = 'demo-copy:' + String(row.email).trim().toLowerCase();
+    const visitor = cache.get(key);
+    if (!visitor) return;
+    GmailApp.sendEmail(visitor, msg.subject, '', {
+      htmlBody: msg.html + '<p style="color:#8a857d;font-size:12px">You received this copy because someone ran the Welcome Copilot demo with your address - one-time email, no list, no follow-up.</p>',
+      name: 'Welcome Copilot demo',
+    });
+    cache.remove(key);
+    log_(runId, row.hireId, 'DEMO_COPY', 'visitor copy sent');
+  } catch (e) {
+    Logger.log('Demo visitor copy failed: ' + e);
+  }
 }
 
 function readTrackerRows_() {

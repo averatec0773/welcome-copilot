@@ -17,6 +17,10 @@ What to try:
 
 Free-form questions are gated behind an access code from the application materials.
 
+Behind that same code, **Simulate** appends a real row to the shared sheet and pokes the
+real pipeline end-to-end — validation, render, send, archive — with a live status panel and
+the actual email inline. The recipient is always a + alias of the author's own inbox.
+
 ## How it works
 
 ```mermaid

@@ -1,0 +1,103 @@
+import { NextRequest, NextResponse } from "next/server";
+import { ACCESS_COOKIE, hasAccess } from "@/lib/access";
+import { clientIp, getLimiters } from "@/lib/ratelimit";
+import { appendTrackerRow, mapConfig, mapTrackerRows, readRange } from "@/lib/sheets";
+import { buildSimulateRow, countPendingDemoRows, isQuotaLow, isValidEmail } from "@/lib/simulate";
+
+export const dynamic = "force-dynamic";
+export const maxDuration = 30;
+
+const SHEET_ID = "138TahrgW_LzR5h1nIHXqdPtQNxi8jOeQcPeiQdOdO6w";
+
+export async function POST(req: NextRequest) {
+  let body: { firstName?: string; visitorEmail?: string } = {};
+  try {
+    body = await req.json();
+  } catch {
+    /* an empty/missing body is fine — firstName just falls back to a random one */
+  }
+
+  // Gated behind the same access code as the assistant's free-form questions —
+  // this writes a real row and triggers a real send, unlike everything else in the console.
+  if (!hasAccess(req.cookies.get(ACCESS_COOKIE)?.value)) {
+    return NextResponse.json({ error: "locked" }, { status: 401 });
+  }
+
+  const ip = clientIp(req);
+
+  let ipRes;
+  try {
+    ipRes = await getLimiters().simPerIp.limit(ip);
+  } catch (e) {
+    console.error("rate limiter unavailable:", e);
+    return NextResponse.json({ error: "limiter_unavailable" }, { status: 503 });
+  }
+  if (!ipRes.success) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: { "Retry-After": "3600" } });
+  }
+
+  let globalRes;
+  try {
+    globalRes = await getLimiters().simGlobal.limit("all");
+  } catch (e) {
+    console.error("rate limiter unavailable:", e);
+    return NextResponse.json({ error: "limiter_unavailable" }, { status: 503 });
+  }
+  if (!globalRes.success) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429, headers: { "Retry-After": "600" } });
+  }
+
+  // Capacity guards — never let the demo pile up unreviewed rows or run the
+  // real mailbox out of its daily quota.
+  try {
+    const [trackerValues, configValues] = await Promise.all([
+      readRange("Tracker!A1:L500"),
+      readRange("Config!A1:B20"),
+    ]);
+    if (countPendingDemoRows(mapTrackerRows(trackerValues)) >= 5) {
+      return NextResponse.json({ error: "demo_backlog" }, { status: 503 });
+    }
+    if (isQuotaLow(mapConfig(configValues))) {
+      return NextResponse.json({ error: "quota_low" }, { status: 503 });
+    }
+  } catch (e) {
+    console.error("simulate guard read failed:", e);
+    return NextResponse.json({ error: "sheet_unavailable" }, { status: 502 });
+  }
+
+  const visitorEmail = isValidEmail(body.visitorEmail) ? String(body.visitorEmail).trim() : undefined;
+  const { row, name, alias } = buildSimulateRow(body.firstName);
+
+  let appendedRow: number;
+  try {
+    appendedRow = await appendTrackerRow(row);
+  } catch (e) {
+    console.error("simulate append failed:", e);
+    return NextResponse.json({ error: "append_failed" }, { status: 502 });
+  }
+
+  // Best-effort nudge — the 5-minute Apps Script trigger picks this row up
+  // regardless, so a failed poke never blocks the response.
+  let poked = false;
+  const webhookUrl = process.env.GAS_WEBHOOK_URL;
+  if (webhookUrl) {
+    try {
+      const res = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: process.env.SIMULATE_TOKEN ?? "", alias, visitorEmail }),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (res.ok) {
+        const j = await res.json().catch(() => null);
+        poked = j?.ok === true;
+      }
+    } catch (e) {
+      console.error("webhook poke failed:", e);
+    }
+  }
+
+  const sheetLink = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=0&range=A${appendedRow}`;
+
+  return NextResponse.json({ alias, name, row: appendedRow, sheetLink, poked });
+}

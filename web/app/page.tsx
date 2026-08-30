@@ -107,6 +107,10 @@ export default function Home() {
             See the actual shared Google Sheet ↗
           </a>
         </p>
+        <p style={{ textAlign: "center", color: "var(--muted)", fontSize: 14, marginTop: 8 }}>
+          Want to watch it happen live? The Console&rsquo;s <strong>Simulate</strong> tab (behind
+          an access code) appends a real row and pokes the real pipeline end-to-end.
+        </p>
       </section>
 
       <section className="container" style={{ padding: "48px 24px 96px" }}>

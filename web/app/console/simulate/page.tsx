@@ -1,0 +1,291 @@
+"use client";
+import { useEffect, useRef, useState } from "react";
+import type { Hire, OutboxEmail } from "@/lib/sheets";
+
+type SimulateResult = { alias: string; name: string; row: number; sheetLink: string; poked: boolean };
+
+const ERROR_MESSAGES: Record<string, string> = {
+  locked: "This needs an access code — see below.",
+  rate_limited: "One simulation at a time, and a handful per hour across all visitors. Try again shortly.",
+  limiter_unavailable: "The rate limiter is unavailable right now — try again in a moment.",
+  demo_backlog: "There are already several demo hires mid-pipeline. Give them a few minutes to finish, then retry.",
+  quota_low: "Today's mail quota is running low, so live sends are paused for now. Try again tomorrow.",
+  sheet_unavailable: "Couldn't read the tracker sheet — try again in a moment.",
+  append_failed: "Couldn't append the row — try again in a moment.",
+};
+
+function UnlockForm({ onUnlocked }: { onUnlocked: () => void }) {
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+
+  async function submit(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const c = code.trim();
+    if (!c || busy) return;
+    setBusy(true);
+    setNote("");
+    try {
+      const res = await fetch("/api/unlock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: c }),
+      });
+      const j = await res.json();
+      if (res.ok && j.ok) {
+        onUnlocked();
+      } else {
+        setNote("That code didn't work — check the application materials and try again.");
+      }
+    } catch {
+      setNote("Network error — please retry.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      style={{
+        display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8,
+        marginTop: 12, padding: "10px 14px", borderRadius: "var(--radius)",
+        border: "1px solid var(--border)", background: "var(--accent-soft)", fontSize: 13,
+      }}
+    >
+      <span style={{ color: "var(--muted)" }}>Have an access code?</span>
+      <input
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+        placeholder="Access code"
+        style={{
+          padding: "6px 10px", borderRadius: "var(--radius)",
+          border: "1px solid var(--border)", fontSize: 13, background: "var(--surface)",
+        }}
+      />
+      <button
+        type="submit"
+        disabled={busy}
+        style={{
+          padding: "6px 14px", borderRadius: "var(--radius)", border: "none",
+          background: "var(--accent)", color: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer",
+        }}
+      >
+        Unlock
+      </button>
+      {note && <span style={{ color: "var(--muted)" }}>{note}</span>}
+    </form>
+  );
+}
+
+export default function SimulatePage() {
+  const [unlocked, setUnlocked] = useState<boolean | null>(null);
+  const [firstName, setFirstName] = useState("");
+  const [wantCopy, setWantCopy] = useState(false);
+  const [visitorEmail, setVisitorEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<SimulateResult | null>(null);
+  const [hire, setHire] = useState<Hire | null>(null);
+  const [outboxEmail, setOutboxEmail] = useState<OutboxEmail | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    fetch("/api/unlock").then((r) => r.json()).then((j) => setUnlocked(!!j.unlocked)).catch(() => setUnlocked(false));
+  }, []);
+
+  // Once a row is appended, poll the tracker for the alias's status, then once
+  // it's SENT, poll the outbox for the archived email and stop.
+  useEffect(() => {
+    if (!result || outboxEmail) return;
+    async function tick() {
+      try {
+        const tRes = await fetch("/api/tracker");
+        const tJson = await tRes.json();
+        const hires: Hire[] = tJson.hires ?? [];
+        const found = hires.find((h) => h.email.toLowerCase() === result!.alias.toLowerCase());
+        if (found) setHire(found);
+        if (found?.welcomeStatus === "SENT") {
+          const oRes = await fetch("/api/outbox");
+          const oJson = await oRes.json();
+          const emails: OutboxEmail[] = oJson.emails ?? [];
+          const email = emails.find((e) => e.to.toLowerCase() === result!.alias.toLowerCase());
+          if (email) setOutboxEmail(email);
+        }
+      } catch {
+        /* transient — the next tick will retry */
+      }
+    }
+    tick();
+    pollRef.current = setInterval(tick, 10_000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result, outboxEmail]);
+
+  useEffect(() => {
+    if (outboxEmail && pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, [outboxEmail]);
+
+  async function submit(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch("/api/simulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: firstName.trim() || undefined,
+          visitorEmail: wantCopy ? visitorEmail.trim() : undefined,
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        setError(ERROR_MESSAGES[j.error] ?? "Something went wrong — try again.");
+      } else {
+        setResult(j);
+        setHire(null);
+        setOutboxEmail(null);
+      }
+    } catch {
+      setError("Network error — please retry.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (unlocked === null) return <p>Loading…</p>;
+
+  if (!unlocked) {
+    return (
+      <section style={{ maxWidth: 640 }}>
+        <h2 style={{ fontSize: 20, marginBottom: 8 }}>Simulate a hire</h2>
+        <p style={{ color: "var(--muted)", fontSize: 14 }}>
+          This appends a real row to the shared Tracker sheet, exactly as if HR had marked
+          someone &ldquo;Hired,&rdquo; and pokes the real pipeline to send a real welcome email —
+          to a + alias of the author&rsquo;s own inbox, never a real hire. It&rsquo;s gated behind
+          the same access code as the assistant&rsquo;s free-form questions.
+        </p>
+        <UnlockForm onUnlocked={() => setUnlocked(true)} />
+      </section>
+    );
+  }
+
+  return (
+    <section style={{ maxWidth: 640 }}>
+      <h2 style={{ fontSize: 20, marginBottom: 8 }}>Simulate a hire</h2>
+      <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 16 }}>
+        This appends a real row to the shared Google Sheet and the real pipeline sends a real
+        email — the recipient is always a + alias of the author&rsquo;s own inbox, never you or
+        anyone else.
+        {wantCopy && " If you add your email below, you'll get a copy of that same email — once, no list, no follow-up."}
+      </p>
+
+      {!result && (
+        <form onSubmit={submit} className="card" style={{ display: "grid", gap: 12 }}>
+          <label style={{ fontSize: 13, display: "grid", gap: 4 }}>
+            First name (optional)
+            <input
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="e.g. Riley"
+              maxLength={20}
+              style={{
+                padding: "8px 10px", borderRadius: "var(--radius)",
+                border: "1px solid var(--border)", fontSize: 14,
+              }}
+            />
+          </label>
+          <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+            <input type="checkbox" checked={wantCopy} onChange={(e) => setWantCopy(e.target.checked)} />
+            Send me the email too
+          </label>
+          {wantCopy && (
+            <input
+              type="email"
+              value={visitorEmail}
+              onChange={(e) => setVisitorEmail(e.target.value)}
+              placeholder="you@example.com"
+              style={{
+                padding: "8px 10px", borderRadius: "var(--radius)",
+                border: "1px solid var(--border)", fontSize: 14,
+              }}
+            />
+          )}
+          <button
+            type="submit"
+            disabled={busy}
+            style={{
+              padding: "10px 16px", borderRadius: "var(--radius)", border: "none",
+              background: "var(--accent)", color: "#fff", fontWeight: 600, fontSize: 14,
+              cursor: "pointer", justifySelf: "start",
+            }}
+          >
+            {busy ? "Simulating…" : "Simulate a hire"}
+          </button>
+          {error && <p style={{ color: "var(--error)", fontSize: 13, margin: 0 }}>{error}</p>}
+        </form>
+      )}
+
+      {result && (
+        <div className="card" style={{ display: "grid", gap: 12 }}>
+          <div style={{ fontSize: 14 }}>
+            ✓ Appended row {result.row} for <strong>{result.name}</strong> ({result.alias}) —{" "}
+            <a href={result.sheetLink} target="_blank" rel="noopener noreferrer">
+              See your row in the Google Sheet ↗
+            </a>
+          </div>
+          <div style={{ fontSize: 14, color: "var(--muted)" }}>
+            {result.poked
+              ? "Pipeline nudged — usually under 30s."
+              : "Nudge failed — the 5-minute timer will pick it up."}
+          </div>
+          <div style={{ fontSize: 14 }}>
+            Status:{" "}
+            {hire?.welcomeStatus ? (
+              <span className={`badge ${hire.welcomeStatus}`}>{hire.welcomeStatus}</span>
+            ) : (
+              <span style={{ color: "var(--muted)" }}>waiting for the pipeline…</span>
+            )}
+          </div>
+          {outboxEmail && (
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ padding: "10px 12px", borderRadius: "var(--radius)", border: "1px solid var(--border)" }}>
+                <iframe
+                  sandbox=""
+                  srcDoc={outboxEmail.bodyHtml}
+                  title={`Email to ${outboxEmail.to}`}
+                  style={{ width: "100%", height: 420, border: "none", background: "#fff" }}
+                />
+              </div>
+              <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
+                That&rsquo;s the exact email the real pipeline just sent — same code path a real
+                new hire gets, archived byte-for-byte in the Outbox.
+              </p>
+            </div>
+          )}
+          <button
+            onClick={() => {
+              setResult(null);
+              setHire(null);
+              setOutboxEmail(null);
+              setFirstName("");
+            }}
+            style={{
+              justifySelf: "start", padding: "8px 14px", borderRadius: "var(--radius)",
+              border: "1px solid var(--border)", background: "var(--bg)", fontSize: 13, cursor: "pointer",
+            }}
+          >
+            Simulate another
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}

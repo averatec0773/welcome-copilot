@@ -2,7 +2,10 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
 // Serverless functions share no memory — counters must live in Redis.
-let limiters: { perIp: Ratelimit; global: Ratelimit; unlockGlobal: Ratelimit } | null = null;
+let limiters: {
+  perIp: Ratelimit; global: Ratelimit; unlockGlobal: Ratelimit;
+  simPerIp: Ratelimit; simGlobal: Ratelimit;
+} | null = null;
 
 export function getLimiters() {
   if (!limiters) {
@@ -17,6 +20,8 @@ export function getLimiters() {
       perIp: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(8, "1 m"), prefix: "ask:ip" }),
       global: new Ratelimit({ redis, limiter: Ratelimit.fixedWindow(300, "1 d"), prefix: "ask:global" }),
       unlockGlobal: new Ratelimit({ redis, limiter: Ratelimit.fixedWindow(1000, "1 d"), prefix: "unlock:global" }),
+      simPerIp: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(1, "1 h"), prefix: "sim:ip" }),
+      simGlobal: new Ratelimit({ redis, limiter: Ratelimit.fixedWindow(1, "10 m"), prefix: "sim:global" }),
     };
   }
   return limiters;
