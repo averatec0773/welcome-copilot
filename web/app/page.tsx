@@ -108,8 +108,9 @@ export default function Home() {
           </a>
         </p>
         <p style={{ textAlign: "center", color: "var(--muted)", fontSize: 14, marginTop: 8 }}>
-          Want to watch it happen live? The Console&rsquo;s <strong>Simulate</strong> tab (behind
-          an access code) appends a real row and pokes the real pipeline end-to-end.
+          Want to watch it happen live? The <strong>▶ Simulate a hire</strong> button on the
+          Console&rsquo;s Tracker (behind an access code) appends a real row and pokes the real
+          pipeline end-to-end.
         </p>
       </section>
 

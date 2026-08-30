@@ -140,9 +140,12 @@ every gated action (`unlock`, `ask`, `simulate`) appends one row to a
 private Google Sheet nothing else in the demo reads from or writes to:
 timestamp, event type, a truncated IP, a truncated user-agent, and an
 event-specific detail — the full question and answer text for the
-assistant, just the generated demo name/alias and the visitor's email
-domain (never the full address) for a simulate run. None of it is ever
-surfaced in any UI. Second, Simulate's optional visitor-copy address is
+assistant, the generated demo name/alias plus the visitor's full
+self-supplied email address (when they opted in to a copy) for a simulate
+run. That address is an owner decision to log in full — it's stored only
+in this private, operator-only audit sheet, never in the public Tracker
+sheet and never in any UI-facing log. None of it is ever surfaced in any
+UI. Second, Simulate's optional visitor-copy address is
 never written to the shared Tracker: it's forwarded once to the Apps
 Script webhook, cached there for 6 hours keyed to that row, sent exactly
 once after the real send completes, then deleted, carrying a one-time

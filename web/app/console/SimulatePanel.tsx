@@ -59,19 +59,16 @@ const EXPLAIN_PROPS = {
   ],
 };
 
+// Defensive only. The Tracker page's "Simulate a hire" button already gates
+// on unlocked and calls promptUnlock() itself before this modal ever opens —
+// this branch shouldn't render on the primary path, so it stays minimal and
+// doesn't re-trigger promptUnlock() (the button already did).
 function LockedPanel() {
-  const { promptUnlock } = useUnlock();
-  useEffect(() => {
-    promptUnlock();
-    // Only on mount of the locked view — never re-fire while it stays locked.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   return (
     <section>
       <h2 style={{ fontSize: 24, marginBottom: 8 }}>Simulate a hire</h2>
-      <Explain {...EXPLAIN_PROPS} />
       <p style={{ fontSize: 14, color: "var(--muted)" }}>
-        Enter the access code at the top right to run a simulation.
+        This needs an access code — enter it at the top right.
       </p>
     </section>
   );

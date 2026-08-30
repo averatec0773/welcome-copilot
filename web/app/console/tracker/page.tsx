@@ -5,6 +5,28 @@ import { usePoll } from "@/lib/usePoll";
 import type { Hire } from "@/lib/sheets";
 import { Explain } from "../Explain";
 import SimulatePanel from "../SimulatePanel";
+import { useUnlock } from "../UnlockContext";
+
+// Rows can arrive without a hire_id in edge cases (a mid-append row, a
+// malformed sheet edit) — fall back to email so the row key and the
+// expand/collapse toggle never collide on an empty string.
+const rowKey = (h: Hire) => h.hireId || h.email;
+
+// Date-only ISO values ("2026-07-14") parse as UTC midnight in JS, which can
+// display as the previous day in a negative-offset timezone — pin them to
+// local midnight instead. Anything else (or unparseable) passes through.
+function parseDate(s: string): Date | null {
+  if (!s) return null;
+  const iso = /^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s}T00:00:00` : s;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function fmtDate(s: string): string {
+  const d = parseDate(s);
+  if (!d) return s;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
 
 const LEGEND: { status: string; meaning: string }[] = [
   { status: "SENT", meaning: "welcome email delivered, will never re-send" },
@@ -80,11 +102,13 @@ function LifecycleStrip() {
 }
 
 function Timeline({ hire }: { hire: Hire }) {
+  const startParsed = parseDate(hire.startDate);
+  const startLabel = startParsed && startParsed.getTime() > Date.now() ? "Starts" : "Started";
   const stages: { label: string; value: string }[] = [
     { label: "Applied", value: hire.appliedOn },
     { label: "Interviewed", value: hire.interviewedOn },
     { label: "Offer", value: hire.offerOn },
-    { label: "Started", value: hire.startDate },
+    { label: startLabel, value: hire.startDate },
   ].filter((s) => s.value);
   if (stages.length === 0) {
     return <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>No timeline dates on file yet.</p>;
@@ -95,7 +119,7 @@ function Timeline({ hire }: { hire: Hire }) {
         <span key={s.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {i > 0 && <span style={{ color: "var(--muted)" }}>→</span>}
           <span>
-            {s.label} <strong>{s.value}</strong>
+            {s.label} <strong>{fmtDate(s.value)}</strong>
           </span>
         </span>
       ))}
@@ -136,21 +160,25 @@ function CandidateDetail({ hire }: { hire: Hire }) {
   );
 }
 
-function SimulateModal({ onClose }: { onClose: () => void }) {
+// Stays mounted for the rest of the page's life once opened once, so
+// SimulatePanel's in-flight polling survives an accidental overlay click —
+// visibility toggles via display none/flex instead of unmount/remount.
+function SimulateModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   useEffect(() => {
+    if (!visible) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [visible, onClose]);
 
   return (
     <div
       onClick={onClose}
       style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,.45)",
-        display: "flex", alignItems: "flex-start", justifyContent: "center",
+        display: visible ? "flex" : "none", alignItems: "flex-start", justifyContent: "center",
         padding: "40px 16px", zIndex: 100, overflowY: "auto",
       }}
     >
@@ -176,17 +204,35 @@ function SimulateModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function TrackerPage() {
+  const { unlocked, promptUnlock } = useUnlock();
   const { data, error, refreshedAt } = usePoll<{ hires: Hire[] }>("/api/tracker");
-  const [modalOpen, setModalOpen] = useState(false);
+  // mounted: becomes true the first time an unlocked visitor opens the
+  // modal, then stays true for the rest of the page's life so SimulatePanel
+  // (and its in-flight polling) is never torn down. visible only toggles
+  // display — see SimulateModal.
+  const [modalMounted, setModalMounted] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   if (error) return <p className="card">Tracker unavailable: {error}</p>;
   if (!data) return <p>Loading tracker…</p>;
+
+  function openSimulate() {
+    // Locked visitors never see the modal — send them to the one place a
+    // code is entered instead (header chip opens + flashes).
+    if (!unlocked) {
+      promptUnlock();
+      return;
+    }
+    setModalMounted(true);
+    setModalVisible(true);
+  }
+
   return (
     <section>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
         <h2 style={{ fontSize: 24, margin: 0 }}>Tracker</h2>
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={openSimulate}
           style={{
             padding: "10px 18px", borderRadius: "var(--radius)", border: "none",
             background: "var(--accent)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer",
@@ -223,12 +269,13 @@ export default function TrackerPage() {
           </thead>
           <tbody>
             {data.hires.map((h) => {
-              const open = expandedId === h.hireId;
+              const key = rowKey(h);
+              const open = expandedId === key;
               return (
-                <Fragment key={h.hireId}>
+                <Fragment key={key}>
                   <tr
                     className="tracker-row"
-                    onClick={() => setExpandedId(open ? null : h.hireId)}
+                    onClick={() => setExpandedId(open ? null : key)}
                   >
                     <td>{h.hireId}{h.isDemo ? " 🧪" : ""}</td>
                     <td>{h.name}</td>
@@ -259,7 +306,7 @@ export default function TrackerPage() {
           </tbody>
         </table>
       </div>
-      {modalOpen && <SimulateModal onClose={() => setModalOpen(false)} />}
+      {modalMounted && <SimulateModal visible={modalVisible} onClose={() => setModalVisible(false)} />}
     </section>
   );
 }

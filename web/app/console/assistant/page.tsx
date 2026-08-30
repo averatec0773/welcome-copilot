@@ -151,6 +151,12 @@ export default function AssistantPage() {
           e.preventDefault();
           const question = input.trim();
           if (!question || busy) return;
+          // Access state hasn't loaded yet — don't guess. No promptUnlock()
+          // here: that's for a confirmed lock, not an unknown one.
+          if (unlocked === null) {
+            setMsgs((m) => [...m, { role: "assistant", text: "Checking access…" }]);
+            return;
+          }
           if (!unlocked) {
             setInput("");
             setMsgs((m) => [
