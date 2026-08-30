@@ -67,7 +67,7 @@ function runPipeline() {
       else if (outcome === 'INVALID') invalid++;
     }
     if (eligible.length > 0) {
-      log_(runId, '-', 'RUN', eligible.length + ' eligible · ' + sent + ' sent · ' + drafted + ' drafted · ' + dup + ' duplicate · ' + invalid + ' invalid');
+      log_(runId, '-', 'RUN', eligible.length + ' eligible · ' + sent + ' sent · ' + drafted + ' drafted · ' + dup + ' duplicate · ' + invalid + ' invalid · ' + held + ' held');
     }
     setConfigValue('last_run_at', new Date().toISOString());
     setConfigValue('mail_quota_remaining', MailApp.getRemainingDailyQuota());

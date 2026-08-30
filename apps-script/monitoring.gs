@@ -54,9 +54,14 @@ function dailyDigest() {
     'No news from me tomorrow would itself be a signal — check the triggers.',
   ].join('\n');
   alertAdmin('Daily digest', body);
-  log_('-', '-', 'DIGEST',
-    'sent ' + count('SEND') + ' · demo ' + demoSends + ' · drafted ' + count('DRAFT') + ' · invalid ' + count('INVALID') +
-    ' · duplicate ' + count('DUPLICATE') + ' · errors ' + count('ERROR') + ' · stuck ' + stuck);
+  try {
+    log_('-', '-', 'DIGEST',
+      'sent ' + count('SEND') + ' · demo ' + demoSends + ' · drafted ' + count('DRAFT') + ' · invalid ' + count('INVALID') +
+      ' · duplicate ' + count('DUPLICATE') + ' · errors ' + count('ERROR') + ' · stuck ' + stuck);
+  } catch (e) {
+    // A Log append failure must never block demo-row archiving below.
+    Logger.log('DIGEST log row failed: ' + e);
+  }
   archiveDemoRows_();
 }
 
