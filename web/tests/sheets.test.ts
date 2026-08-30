@@ -40,3 +40,17 @@ describe("mapConfig", () => {
     expect(cfg.last_run_at).toContain("2026");
   });
 });
+
+describe("mapOpsInboxRows", () => {
+  it("sorts newest first by parsed timestamp, index tiebreak", async () => {
+    const { mapOpsInboxRows } = await import("@/lib/sheets");
+    const rows = [
+      ["timestamp", "type", "subject", "body"],
+      ["8/29/2026 08:00:00", "DIGEST", "Daily digest", "a"],
+      ["8/29/2026 15:00:00", "ALERT", "Invalid hire row", "b"],
+      ["not-a-date", "ALERT", "odd", "c"],
+    ];
+    const msgs = mapOpsInboxRows(rows);
+    expect(msgs.map((m) => m.subject)).toEqual(["Invalid hire row", "Daily digest", "odd"]);
+  });
+});
