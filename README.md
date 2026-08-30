@@ -35,11 +35,11 @@ flowchart LR
     F --> G[Write back sent_at]
     G --> H[Heartbeat ping<br/>healthchecks.io]
 
-    SHEET[(Google Sheet)] -.read-only.-> WEB[Next.js console<br/>+ assistant]
+    SHEET[(Google Sheet)] -.reads + one gated append.-> WEB[Next.js console<br/>+ assistant]
     B -.reads/writes.-> SHEET
 ```
 
-The Apps Script pipeline and the Next.js console never talk to each other directly — they share state only through the Sheet, one read-only via a service account, one read-write via the bound script.
+The Apps Script pipeline and the Next.js console never talk to each other directly — they share state only through the Sheet: the console reads via a service account (its only write is the invite-code-gated Simulate append), while the bound script owns all pipeline writes.
 
 ## Reliability, by design
 
@@ -109,7 +109,7 @@ server component with zero runtime cost.
 Prerequisites:
 
 - A Google Sheet with an Apps Script project bound to it, pushed with [`clasp`](https://github.com/google/clasp).
-- A GCP service account, shared read-only on that Sheet, for the console.
+- A GCP service account, shared as Editor on that Sheet (the console reads everywhere and writes only via the gated Simulate append).
 - A Vercel account to deploy `web/`.
 - An [Upstash](https://upstash.com) Redis database for rate limiting.
 - An Anthropic API key.
